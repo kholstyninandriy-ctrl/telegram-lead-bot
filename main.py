@@ -45,8 +45,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GOOGLE_MAPS_API_KEY", "")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+GOOGLE_API_KEY = os.environ.get("AIzaSyBAYg5x7vlNnxoyzqFk5lc1oiP54k1TS7U") or os.environ.get("GOOGLE_MAPS_API_KEY", "")
+OPENAI_API_KEY = os.environ.get("sk-proj-N22i5_neUG3fueTR_z8HjRy6NE4", "")
 DB_PATH = os.path.join(os.path.dirname(__file__), "notes.db")
 
 # ─── OpenAI client ────────────────────────────────────────────────────────────
