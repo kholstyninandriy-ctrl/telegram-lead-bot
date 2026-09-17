@@ -102,14 +102,58 @@ class ScoreTests(unittest.TestCase):
             self.assertTrue(mark)
 
 
+def cf_encode(email: str, key: int = 0x7a) -> str:
+    """Те саме кодування, яким Cloudflare ховає пошту на сторінці."""
+    return format(key, "02x") + "".join(format(ord(ch) ^ key, "02x") for ch in email)
+
+
 class EnrichParsingTests(unittest.TestCase):
+    def test_cloudflare_protected_email_is_decoded(self):
+        encoded = cf_encode("info@theramosteam.com")
+        html = (f'<a href="/cdn-cgi/l/email-protection#{encoded}" '
+                f'class="__cf_email__" data-cfemail="{encoded}">[email&#160;protected]</a>')
+        self.assertEqual(enrich.pick_email(html), "info@theramosteam.com")
+
+    def test_broken_cfemail_is_ignored(self):
+        self.assertEqual(enrich.decode_cfemail("zzzz"), "")
+        self.assertEqual(enrich.decode_cfemail("7a13"), "")
+
     def test_mailto_wins_over_plain_text(self):
         html = '<a href="mailto:Boss@Shop.de">mail</a> support@other.com'
         self.assertEqual(enrich.pick_email(html), "boss@shop.de")
 
+    def test_jsonld_email(self):
+        html = '<script type="application/ld+json">{"email":"Hello@Ramos.Ca"}</script>'
+        self.assertEqual(enrich.pick_email(html), "hello@ramos.ca")
+
+    def test_obfuscated_forms(self):
+        self.assertEqual(enrich.pick_email("office (at) salon [dot] com.ua"),
+                         "office@salon.com.ua")
+        self.assertEqual(enrich.pick_email("<p>info&#64;cafe.de</p>"), "info@cafe.de")
+
+    def test_own_domain_and_role_address_preferred(self):
+        html = ('<a href="mailto:random.person123@gmail.com">x</a>'
+                '<a href="mailto:info@ramosteam.com">y</a>')
+        self.assertEqual(enrich.pick_email(html, "https://www.ramosteam.com/"),
+                         "info@ramosteam.com")
+
     def test_image_and_placeholder_emails_ignored(self):
         self.assertEqual(enrich.pick_email('<img src="logo@2x.png">'), "")
         self.assertEqual(enrich.pick_email("hi@example.com"), "")
+        self.assertEqual(enrich.pick_email("name@yourdomain.com"), "")
+        self.assertEqual(enrich.pick_email("noreply@shop.com"), "")
+
+    def test_contact_links_discovered_on_same_host(self):
+        html = ('<a href="/pages/contact-us/">Contact Us</a><a href="/blog">Blog</a>'
+                '<a href="https://other.com/contact">ext</a><a href="/impressum">Impressum</a>')
+        links = enrich.contact_urls(html, "https://ramosteam.com/")
+        self.assertEqual(links, ["https://ramosteam.com/pages/contact-us/",
+                                 "https://ramosteam.com/impressum"])
+
+    def test_contact_links_by_label_in_any_language(self):
+        html = '<a href="/x7">Контакти</a>'
+        self.assertEqual(enrich.contact_urls(html, "https://cafe.ua/"),
+                         ["https://cafe.ua/x7"])
 
     def test_instagram_service_paths_ignored(self):
         html = '<a href="https://instagram.com/p/abc"></a><a href="https://instagram.com/my.cafe/"></a>'
@@ -122,6 +166,10 @@ class EnrichParsingTests(unittest.TestCase):
     def test_instagram_from_website_url(self):
         self.assertEqual(enrich.instagram_from_url("https://instagram.com/mybiz/?hl=uk"), "mybiz")
         self.assertEqual(enrich.instagram_from_url("https://mybiz.com"), "")
+
+    def test_normalize_website(self):
+        self.assertEqual(enrich.normalize_website("cafe.com"), "https://cafe.com")
+        self.assertEqual(enrich.normalize_website(""), "")
 
 
 class UITests(unittest.TestCase):
@@ -180,6 +228,73 @@ class BuildLeadTests(unittest.TestCase):
         self.assertEqual(strip_emoji("🏋️ Gym"), "Gym")
         self.assertEqual(strip_emoji("Beauty salon"), "Beauty salon")
         self.assertEqual(strip_emoji("🍕"), "🍕")  # тільки емодзі — лишаємо як є
+
+
+class FetchContactsTests(unittest.IsolatedAsyncioTestCase):
+    """Сценарій «email лише на сторінці контактів» — найчастіший на практиці."""
+
+    def setUp(self):
+        self.original_fetch = enrich.fetch_html
+        self.requested = []
+
+    def tearDown(self):
+        enrich.fetch_html = self.original_fetch
+
+    def _serve(self, pages):
+        async def fake_fetch(url):
+            self.requested.append(url)
+            return pages.get(url, "")
+        enrich.fetch_html = fake_fetch
+
+    async def test_email_found_on_linked_contact_page(self):
+        self._serve({
+            "https://cafe.com": '<a href="/kontakt">Kontakt</a>'
+                                '<a href="https://instagram.com/cafe.kyiv">ig</a>',
+            "https://cafe.com/kontakt": '<a href="mailto:info@cafe.com">write</a>',
+        })
+        result = await enrich.fetch_contacts("cafe.com", "Cafe", "Kyiv")
+        self.assertEqual(result["email"], "info@cafe.com")
+        self.assertEqual(result["contact_page"], "https://cafe.com/kontakt")
+        self.assertEqual(result["instagram"], "cafe.kyiv")
+        self.assertTrue(result["instagram_verified"])
+
+    async def test_falls_back_to_common_paths_when_menu_is_js(self):
+        self._serve({
+            "https://shop.de": "<div id='root'></div>",   # меню малює JS
+            "https://shop.de/impressum": "Kontakt: info@shop.de",
+        })
+        result = await enrich.fetch_contacts("https://shop.de")
+        self.assertEqual(result["email"], "info@shop.de")
+
+    async def test_no_website_means_no_requests(self):
+        self._serve({})
+        result = await enrich.fetch_contacts("", "Bar", "Lviv")
+        self.assertEqual(result["email"], "")
+        self.assertEqual(self.requested, [])
+        self.assertFalse(result["instagram_verified"])
+        self.assertIn("instagram.com", result["instagram_url"])
+
+    async def test_instagram_only_website(self):
+        self._serve({})
+        result = await enrich.fetch_contacts("https://instagram.com/my.bar", "Bar", "Lviv")
+        self.assertEqual(result["instagram"], "my.bar")
+        self.assertEqual(self.requested, [])   # сайт не тягнемо
+
+    async def test_contact_page_crawl_is_bounded(self):
+        links = "".join(f'<a href="/contact-{i}">Contact {i}</a>' for i in range(20))
+        self._serve({"https://big.com": links})
+        await enrich.fetch_contacts("https://big.com")
+        self.assertLessEqual(len(self.requested), 7)  # головна + не більше 5-6 кандидатів
+
+    async def test_enrich_many_survives_failures(self):
+        async def boom(url):
+            raise RuntimeError("network down")
+        enrich.fetch_html = boom
+        leads = [{"name": "A", "website": "https://a.com", "city": "Kyiv"},
+                 {"name": "B", "website": "", "city": "Kyiv"}]
+        await enrich.enrich_many(leads)
+        self.assertTrue(all("instagram_url" in lead for lead in leads))
+        self.assertTrue(all(lead["email"] == "" for lead in leads))
 
 
 class DatabaseTests(unittest.IsolatedAsyncioTestCase):

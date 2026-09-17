@@ -289,6 +289,8 @@ async def run_search(update: Update, context: ContextTypes.DEFAULT_TYPE, count: 
     hot = sum(1 for lead in leads if lead["score"] >= 75)
     with_email = sum(1 for lead in leads if lead.get("email"))
     with_phone = sum(1 for lead in leads if lead.get("phone_valid"))
+    with_instagram = sum(1 for lead in leads if lead.get("instagram_verified"))
+    no_website = sum(1 for lead in leads if not lead.get("website"))
     in_crm = sum(1 for lead in leads if lead.get("in_crm"))
 
     summary = [
@@ -296,7 +298,9 @@ async def run_search(update: Update, context: ContextTypes.DEFAULT_TYPE, count: 
         "",
         f"🔥 Гарячих (75+): <b>{hot}</b>",
         f"📞 З валідним телефоном: <b>{with_phone}</b>",
-        f"✉️ З email: <b>{with_email}</b>",
+        f"✉️ З email: <b>{with_email}</b>"
+        + (f" <i>(у {no_website} немає сайту — email там не існує)</i>" if no_website else ""),
+        f"📸 З Instagram: <b>{with_instagram}</b>",
     ]
     if in_crm:
         summary.append(f"🗂 Вже у твоїй CRM: <b>{in_crm}</b>")

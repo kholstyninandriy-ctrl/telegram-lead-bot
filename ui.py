@@ -143,6 +143,10 @@ def lead_card(lead: dict, index: int, total: int) -> str:
         contacts.append(f"🌐 {link(lead['website'], lead['website'][:60])}")
     if lead.get("email"):
         contacts.append(f"✉️ {code(lead['email'])}")
+    elif not lead.get("website"):
+        contacts.append("🌐 <i>Сайту немає — email взяти нізвідки (але це плюс: є що продати)</i>")
+    else:
+        contacts.append("✉️ <i>Email на сайті не знайдено — пиши через форму на сайті або Instagram</i>")
     if lead.get("instagram_verified") and lead.get("instagram"):
         contacts.append(f"📸 {link(lead['instagram_url'], '@' + lead['instagram'])}")
     if lead.get("facebook"):

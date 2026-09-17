@@ -12,7 +12,7 @@ def client() -> httpx.AsyncClient:
     if _client is None or _client.is_closed:
         _client = httpx.AsyncClient(
             follow_redirects=True,
-            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+            limits=httpx.Limits(max_connections=40, max_keepalive_connections=20),
             headers={"User-Agent": "Mozilla/5.0 (compatible; LeadFinderBot/2.0)"},
         )
     return _client
