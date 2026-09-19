@@ -66,6 +66,11 @@ export default function HeroBackdrop() {
       />
       {/* Keeps the glass panel readable however bright the photo is. */}
       <div className="absolute inset-0 bg-slate-900/25" />
+
+      {/* Dissolves the seams where the photo meets the white header above and
+          the white listings section below. */}
+      <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-white via-white/60 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-white via-white/50 to-transparent" />
     </div>
   );
 }

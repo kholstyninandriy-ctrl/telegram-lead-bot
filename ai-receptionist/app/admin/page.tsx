@@ -35,12 +35,17 @@ function isQualified(lead: Lead): boolean {
   return Boolean((lead.email || lead.phone) && (lead.budgetMax || lead.intent));
 }
 
+type Auth = "checking" | "locked" | "wrong" | "open";
+
 export default function AdminPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [key, setKey] = useState("");
-  const [locked, setLocked] = useState(false);
+  const [auth, setAuth] = useState<Auth>("checking");
+  const [busy, setBusy] = useState(false);
+  // null until the stored key has been read; "" means no key yet.
+  const [key, setKey] = useState<string | null>(null);
+  // Bumped on every submit, so retyping the same wrong password retries.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     // Remembered for this tab only, so a shared screen does not leak it.
@@ -48,6 +53,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
+    if (key === null) return;
     let cancelled = false;
 
     async function load() {
@@ -55,19 +61,22 @@ export default function AdminPage() {
         const response = await fetch("/api/leads", {
           headers: key ? { "x-admin-key": key } : undefined,
         });
+        if (cancelled) return;
 
         if (response.status === 401) {
-          if (!cancelled) setLocked(true);
+          // An empty key is simply "not signed in yet"; a wrong one is an error.
+          setAuth(key ? "wrong" : "locked");
           return;
         }
 
         const data = await response.json();
-        if (!cancelled) {
-          setLocked(false);
-          setRows(data.conversations ?? []);
-        }
+        setAuth("open");
+        setRows(data.conversations ?? []);
+      } catch {
+        // A dropped request should not log anyone out mid-session.
+        if (!cancelled && auth === "checking") setAuth("locked");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setBusy(false);
       }
     }
 
@@ -77,36 +86,50 @@ export default function AdminPage() {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [key]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, attempt]);
 
-  if (locked) {
+  if (auth !== "open") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
         <form
           onSubmit={(event) => {
             event.preventDefault();
             const value = new FormData(event.currentTarget).get("password");
-            const password = typeof value === "string" ? value : "";
+            const password = (typeof value === "string" ? value : "").trim();
             sessionStorage.setItem("ai-receptionist-admin-key", password);
+            setBusy(true);
             setKey(password);
+            setAttempt((n) => n + 1);
           }}
           className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8"
         >
           <h1 className="text-lg font-semibold">Leads</h1>
           <p className="mt-1 text-sm text-slate-500">This dashboard is password protected.</p>
+
           <input
             name="password"
             type="password"
             autoFocus
+            autoComplete="current-password"
             placeholder="Password"
             className="mt-5 w-full rounded-lg bg-slate-100 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-slate-300"
           />
+
+          {auth === "wrong" && !busy && (
+            <p className="mt-2 text-sm text-red-600">
+              That password is not right. It is the ADMIN_PASSWORD you set where this site is
+              hosted.
+            </p>
+          )}
+
           <button
             type="submit"
-            className="mt-3 w-full rounded-lg px-4 py-2.5 text-sm font-medium text-white"
+            disabled={busy}
+            className="mt-3 w-full rounded-lg px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-60"
             style={{ backgroundColor: "var(--brand)" }}
           >
-            Open
+            {busy ? "Checking…" : "Open"}
           </button>
         </form>
       </main>
@@ -138,9 +161,7 @@ export default function AdminPage() {
         </div>
 
         <div className="mt-8 space-y-3">
-          {loading && <p className="text-sm text-slate-500">Loading…</p>}
-
-          {!loading && rows.length === 0 && (
+          {rows.length === 0 && (
             <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
               <p className="text-sm text-slate-500">
                 No conversations yet. Open the demo site and talk to the widget.
