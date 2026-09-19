@@ -1,0 +1,10 @@
+run = "bash start.sh"
+entrypoint = "main.py"
+modules = ["python-3.11"]
+
+[deployment]
+run = ["bash", "start.sh"]
+deploymentTarget = "vm"
+
+[[ports]]
+localPort = 8080
