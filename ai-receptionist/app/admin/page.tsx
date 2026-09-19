@@ -39,15 +39,33 @@ export default function AdminPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [key, setKey] = useState("");
+  const [locked, setLocked] = useState(false);
+
+  useEffect(() => {
+    // Remembered for this tab only, so a shared screen does not leak it.
+    setKey(sessionStorage.getItem("ai-receptionist-admin-key") ?? "");
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       try {
-        const response = await fetch("/api/leads");
+        const response = await fetch("/api/leads", {
+          headers: key ? { "x-admin-key": key } : undefined,
+        });
+
+        if (response.status === 401) {
+          if (!cancelled) setLocked(true);
+          return;
+        }
+
         const data = await response.json();
-        if (!cancelled) setRows(data.conversations ?? []);
+        if (!cancelled) {
+          setLocked(false);
+          setRows(data.conversations ?? []);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -59,7 +77,41 @@ export default function AdminPage() {
       cancelled = true;
       clearInterval(timer);
     };
-  }, []);
+  }, [key]);
+
+  if (locked) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const value = new FormData(event.currentTarget).get("password");
+            const password = typeof value === "string" ? value : "";
+            sessionStorage.setItem("ai-receptionist-admin-key", password);
+            setKey(password);
+          }}
+          className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8"
+        >
+          <h1 className="text-lg font-semibold">Leads</h1>
+          <p className="mt-1 text-sm text-slate-500">This dashboard is password protected.</p>
+          <input
+            name="password"
+            type="password"
+            autoFocus
+            placeholder="Password"
+            className="mt-5 w-full rounded-lg bg-slate-100 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-slate-300"
+          />
+          <button
+            type="submit"
+            className="mt-3 w-full rounded-lg px-4 py-2.5 text-sm font-medium text-white"
+            style={{ backgroundColor: "var(--brand)" }}
+          >
+            Open
+          </button>
+        </form>
+      </main>
+    );
+  }
 
   const bookingCount = rows.reduce((sum, row) => sum + row.bookings.length, 0);
   const qualifiedCount = rows.filter((row) => isQualified(row.lead)).length;

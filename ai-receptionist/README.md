@@ -49,7 +49,8 @@ data/listings.json   demo inventory the assistant is allowed to talk about
 lib/prompt.ts        the receptionist's persona and rules
 lib/tools.ts         what the assistant can do: search, save lead, book
 lib/claude.ts        the model loop
-lib/store.ts         conversation storage (in memory for now)
+lib/store.ts         conversation storage (Supabase, or memory without it)
+supabase/schema.sql  run this once in the Supabase SQL editor
 lib/scheduling.ts    appointment slots, in the agency's timezone
 app/api/chat         the widget's only endpoint
 public/embed.js      the one line a client adds to their site

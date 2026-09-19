@@ -2,7 +2,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { agency } from "@/config/agency";
 import { formatPrice, findListing, searchListings } from "./listings";
 import { availableSlots, formatSlot, isSlotAvailable } from "./scheduling";
-import { addBooking, updateLead } from "./store";
+import { addBooking, bookedSlots, updateLead } from "./store";
 import type { Booking, Lead } from "./types";
 
 export const tools: Anthropic.Tool[] = [
@@ -118,11 +118,11 @@ export const tools: Anthropic.Tool[] = [
  * recovers far better from "that slot is taken, here are open ones" than from a
  * 500 that drops the conversation.
  */
-export function executeTool(
+export async function executeTool(
   name: string,
   input: Record<string, unknown>,
   conversationId: string,
-): string {
+): Promise<string> {
   switch (name) {
     case "search_listings": {
       const matches = searchListings({
@@ -154,12 +154,12 @@ export function executeTool(
     }
 
     case "save_lead": {
-      const lead = updateLead(conversationId, input as Lead);
-      return lead ? "Saved." : "Conversation not found; nothing saved.";
+      await updateLead(conversationId, input as Lead);
+      return "Saved.";
     }
 
     case "get_available_slots": {
-      const slots = availableSlots(Number(input.days) || 7);
+      const slots = availableSlots(await bookedSlots(), Number(input.days) || 7);
       if (slots.length === 0) {
         return `No open slots in that window. Offer to have someone call them at ${agency.phone}.`;
       }
@@ -168,8 +168,9 @@ export function executeTool(
 
     case "book_appointment": {
       const iso = String(input.iso ?? "");
-      if (!isSlotAvailable(iso)) {
-        const slots = availableSlots(7, 4);
+      const booked = await bookedSlots();
+      if (!isSlotAvailable(iso, booked)) {
+        const slots = availableSlots(booked, 7, 4);
         return `That time is no longer open. Offer one of these instead: ${JSON.stringify(slots)}`;
       }
 
@@ -187,8 +188,8 @@ export function executeTool(
         return "That listing id does not exist. Run search_listings again and use an id from the results.";
       }
 
-      addBooking(conversationId, booking);
-      updateLead(conversationId, {
+      await addBooking(conversationId, booking);
+      await updateLead(conversationId, {
         name: booking.name,
         email: booking.email,
         phone: booking.phone,

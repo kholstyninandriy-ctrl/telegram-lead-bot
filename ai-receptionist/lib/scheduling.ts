@@ -6,7 +6,6 @@
  * edit and nothing more.
  */
 import { agency } from "@/config/agency";
-import { bookedSlots } from "./store";
 
 export interface Slot {
   /** Exact instant, in UTC. This is what we store and send to Google Calendar. */
@@ -91,17 +90,22 @@ export function formatSlot(iso: string): string {
 }
 
 /**
- * Open slots over the next `days` days.
+ * Open slots over the next `days` days, given the times already booked.
  *
  * Skips non-working days, anything already booked, and anything less than two
  * hours out — nobody can make a tour that starts in ten minutes. `perDay` keeps
  * the list spread across days so the assistant can offer a real choice of days
  * rather than four consecutive times this morning.
  */
-export function availableSlots(days = 7, limit = 12, perDay = 4): Slot[] {
+export function availableSlots(
+  booked: string[] = [],
+  days = 7,
+  limit = 12,
+  perDay = 4,
+): Slot[] {
   const now = Date.now();
   const earliest = now + 2 * 60 * 60 * 1000;
-  const taken = new Set(bookedSlots());
+  const taken = new Set(booked);
   const slots: Slot[] = [];
 
   for (let dayOffset = 0; dayOffset < days && slots.length < limit; dayOffset++) {
@@ -137,6 +141,6 @@ export function availableSlots(days = 7, limit = 12, perDay = 4): Slot[] {
  * True when `iso` is a real, still-free slot — guards against invented times.
  * Unlike the offer list, this checks every slot in the window, not a sample.
  */
-export function isSlotAvailable(iso: string): boolean {
-  return availableSlots(14, 500, 1000).some((slot) => slot.iso === iso);
+export function isSlotAvailable(iso: string, booked: string[] = []): boolean {
+  return availableSlots(booked, 14, 500, 1000).some((slot) => slot.iso === iso);
 }

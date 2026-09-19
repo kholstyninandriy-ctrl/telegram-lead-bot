@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { agency } from "@/config/agency";
 import { hasApiKey, respond } from "@/lib/claude";
-import { appendTurns, ensureConversation, syncTranscript } from "@/lib/store";
+import { saveConversation } from "@/lib/store";
 import type { UiMessage } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -33,6 +33,9 @@ function cleanHistory(raw: unknown): UiMessage[] {
     .map((turn) => ({ role: turn.role, text: turn.text.slice(0, MAX_MESSAGE_CHARS) }));
 }
 
+/** A browser-supplied id must be a uuid, or it is not used as a database key. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function POST(request: Request) {
   let body: ChatRequest;
   try {
@@ -50,27 +53,30 @@ export async function POST(request: Request) {
   }
 
   const history = cleanHistory(body.history);
-  const conversation = ensureConversation(body.conversationId, body.pageUrl);
-  syncTranscript(conversation.id, history);
+  const conversationId =
+    body.conversationId && UUID.test(body.conversationId)
+      ? body.conversationId
+      : crypto.randomUUID();
 
   try {
-    const reply = await respond(conversation.id, message, history);
-    appendTurns(conversation.id, [
-      { role: "user", text: message },
-      { role: "assistant", text: reply },
-    ]);
+    // The row has to exist before a booking can reference it.
+    await saveConversation(conversationId, history, body.pageUrl);
 
-    return NextResponse.json({
-      conversationId: conversation.id,
-      reply,
-      demoMode: !hasApiKey(),
-    });
+    const reply = await respond(conversationId, message, history);
+
+    await saveConversation(
+      conversationId,
+      [...history, { role: "user", text: message }, { role: "assistant", text: reply }],
+      body.pageUrl,
+    );
+
+    return NextResponse.json({ conversationId, reply, demoMode: !hasApiKey() });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     console.error("[chat] failed:", detail);
 
     return NextResponse.json({
-      conversationId: conversation.id,
+      conversationId,
       reply: `Sorry — something went wrong on our end. You can reach us directly at ${agency.phone}.`,
       error: true,
       // Set DEBUG_ERRORS=1 to see the real reason in the widget while testing.

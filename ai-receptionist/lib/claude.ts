@@ -90,18 +90,20 @@ export async function respond(
     // Within one request the assistant turn must be echoed back whole, tool
     // blocks and all, and every result goes back in a single user message.
     messages.push({ role: "assistant", content: response.content });
-    messages.push({
-      role: "user",
-      content: toolUses.map((toolUse) => ({
+
+    const results = await Promise.all(
+      toolUses.map(async (toolUse) => ({
         type: "tool_result" as const,
         tool_use_id: toolUse.id,
-        content: executeTool(
+        content: await executeTool(
           toolUse.name,
           (toolUse.input ?? {}) as Record<string, unknown>,
           conversationId,
         ),
       })),
-    });
+    );
+
+    messages.push({ role: "user", content: results });
   }
 
   return `Let me get an agent on this with you — you can reach us at ${agency.phone}.`;
