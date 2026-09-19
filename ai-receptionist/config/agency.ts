@@ -9,13 +9,13 @@
 export const agency = {
   name: process.env.NEXT_PUBLIC_AGENCY_NAME || "Harborview Realty",
   assistantName: process.env.NEXT_PUBLIC_ASSISTANT_NAME || "Ava",
-  city: process.env.NEXT_PUBLIC_AGENCY_CITY || "Austin",
-  state: process.env.NEXT_PUBLIC_AGENCY_STATE || "TX",
-  phone: process.env.NEXT_PUBLIC_AGENCY_PHONE || "(512) 555-0142",
+  city: process.env.NEXT_PUBLIC_AGENCY_CITY || "New York",
+  state: process.env.NEXT_PUBLIC_AGENCY_STATE || "NY",
+  phone: process.env.NEXT_PUBLIC_AGENCY_PHONE || "(212) 555-0142",
   email: process.env.NEXT_PUBLIC_AGENCY_EMAIL || "hello@harborviewrealty.com",
 
   /** IANA timezone — drives every appointment slot the assistant offers. */
-  timezone: process.env.AGENCY_TIMEZONE || "America/Chicago",
+  timezone: process.env.AGENCY_TIMEZONE || "America/New_York",
   /** Local business hours, 24h clock. Slots are only offered inside this window. */
   openHour: Number(process.env.AGENCY_OPEN_HOUR || 9),
   closeHour: Number(process.env.AGENCY_CLOSE_HOUR || 18),
@@ -27,8 +27,8 @@ export const agency = {
 
   specialty:
     process.env.NEXT_PUBLIC_AGENCY_SPECIALTY ||
-    "residential sales and luxury condos",
-  brandColor: process.env.NEXT_PUBLIC_BRAND_COLOR || "#1f6feb",
+    "condos, co-ops and townhouses across the five boroughs",
+  brandColor: process.env.NEXT_PUBLIC_BRAND_COLOR || "#047857",
 
   welcomeMessage:
     process.env.NEXT_PUBLIC_WELCOME_MESSAGE ||

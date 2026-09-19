@@ -1,4 +1,6 @@
 import Script from "next/script";
+import HeroBackdrop from "@/components/HeroBackdrop";
+import Logo from "@/components/Logo";
 import { agency } from "@/config/agency";
 import { formatPrice, listings } from "@/lib/listings";
 
@@ -18,11 +20,9 @@ export default function HomePage() {
       <header className="sticky top-0 z-20 border-b border-white/40 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2.5">
-            <div
-              className="h-8 w-8 rounded-lg"
-              style={{ backgroundColor: "var(--brand)" }}
-              aria-hidden="true"
-            />
+            <span style={{ color: "var(--brand)" }}>
+              <Logo size={32} />
+            </span>
             <span className="text-lg font-semibold tracking-tight">{agency.name}</span>
           </div>
           <nav className="hidden items-center gap-7 text-sm text-slate-600 sm:flex">
@@ -53,9 +53,7 @@ export default function HomePage() {
       </header>
 
       <section className="relative isolate flex min-h-[86vh] items-center overflow-hidden">
-        <div className="hero-photo absolute inset-0 -z-10" aria-hidden="true" />
-        {/* Keeps the glass readable no matter how bright the photo is. */}
-        <div className="absolute inset-0 -z-10 bg-slate-900/25" aria-hidden="true" />
+        <HeroBackdrop />
 
         <div className="mx-auto w-full max-w-3xl px-6 py-20">
           <div className="rounded-3xl bg-white/75 px-8 py-14 text-center shadow-[0_24px_80px_rgba(15,23,42,0.28)] ring-1 ring-white/60 backdrop-blur-2xl sm:px-14">
@@ -88,7 +86,7 @@ export default function HomePage() {
             </div>
             <p className="mt-9 text-sm text-slate-600">
               ↘︎ Every button on this page reaches the AI receptionist. Try it — or ask the bubble
-              in the corner about a three-bedroom under $600k.
+              in the corner about a two-bedroom in Brooklyn.
             </p>
           </div>
         </div>
@@ -157,7 +155,12 @@ export default function HomePage() {
 
       <footer className="border-t border-slate-200 bg-slate-50 py-12">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 text-sm text-slate-500">
-          <p className="font-medium text-slate-700">{agency.name}</p>
+          <p className="flex items-center gap-2 font-medium text-slate-700">
+            <span style={{ color: "var(--brand)" }}>
+              <Logo size={20} />
+            </span>
+            {agency.name}
+          </p>
           <p>
             {agency.phone} · {agency.email}
           </p>

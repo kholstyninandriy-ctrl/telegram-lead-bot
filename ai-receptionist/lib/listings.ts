@@ -20,6 +20,8 @@ export interface Listing {
 export const listings = listingsData as Listing[];
 
 export interface ListingFilters {
+  /** Free text: an address, a listing id, or part of either. */
+  query?: string;
   minPrice?: number;
   maxPrice?: number;
   minBeds?: number;
@@ -30,8 +32,10 @@ export interface ListingFilters {
 export function searchListings(filters: ListingFilters, limit = 4): Listing[] {
   const neighborhood = filters.neighborhood?.trim().toLowerCase();
   const propertyType = filters.propertyType?.trim().toLowerCase();
+  const query = filters.query?.trim().toLowerCase();
 
   const matches = listings.filter((listing) => {
+    if (query && !matchesQuery(listing, query)) return false;
     if (filters.minPrice !== undefined && listing.price < filters.minPrice) return false;
     if (filters.maxPrice !== undefined && listing.price > filters.maxPrice) return false;
     if (filters.minBeds !== undefined && listing.beds < filters.minBeds) return false;
@@ -42,6 +46,19 @@ export function searchListings(filters: ListingFilters, limit = 4): Listing[] {
 
   // Cheapest first: a buyer who names a budget is usually anchored to its low end.
   return matches.sort((a, b) => a.price - b.price).slice(0, limit);
+}
+
+/**
+ * Loose address matching, because people type "1085 S Congress" for
+ * "1085 S Congress Ave, Unit 12" and expect to be understood.
+ */
+function matchesQuery(listing: Listing, query: string): boolean {
+  const haystack = `${listing.id} ${listing.address} ${listing.neighborhood}`.toLowerCase();
+  if (haystack.includes(query)) return true;
+
+  // Every meaningful word of the query has to appear somewhere in the listing.
+  const words = query.split(/[^a-z0-9]+/).filter((word) => word.length > 1);
+  return words.length > 0 && words.every((word) => haystack.includes(word));
 }
 
 export function findListing(id: string): Listing | undefined {

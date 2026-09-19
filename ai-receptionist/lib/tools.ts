@@ -9,10 +9,15 @@ export const tools: Anthropic.Tool[] = [
   {
     name: "search_listings",
     description:
-      "Search the agency's current listings. Call this before describing any property — it is the only source of real inventory. Returns at most four matches, cheapest first.",
+      "Search the agency's current listings. Call this before describing any property — it is the only source of real inventory, and before telling anyone a property is not in it. Returns at most four matches, cheapest first.",
     input_schema: {
       type: "object",
       properties: {
+        query: {
+          type: "string",
+          description:
+            "An address or listing id the visitor named, e.g. '431 6th Ave' or 'HV-1085'. Use this whenever they ask about a specific property; partial addresses match.",
+        },
         minPrice: { type: "number", description: "Lowest acceptable price in USD." },
         maxPrice: { type: "number", description: "Highest acceptable price in USD." },
         minBeds: { type: "number", description: "Minimum number of bedrooms." },
@@ -22,7 +27,7 @@ export const tools: Anthropic.Tool[] = [
         },
         propertyType: {
           type: "string",
-          enum: ["single-family", "condo", "townhouse"],
+          enum: ["single-family", "condo", "co-op", "townhouse"],
           description: "Type of property the visitor wants.",
         },
       },
@@ -126,6 +131,7 @@ export async function executeTool(
   switch (name) {
     case "search_listings": {
       const matches = searchListings({
+        query: input.query as string | undefined,
         minPrice: input.minPrice as number | undefined,
         maxPrice: input.maxPrice as number | undefined,
         minBeds: input.minBeds as number | undefined,
@@ -134,7 +140,9 @@ export async function executeTool(
       });
 
       if (matches.length === 0) {
-        return "No listings match those criteria. Tell the visitor honestly and offer to widen the budget or the area.";
+        return input.query
+          ? "That exact property is not in our inventory. Say so plainly, then call search_listings again without the query field to offer the closest alternatives."
+          : "No listings match those criteria. Tell the visitor honestly and offer to widen the budget or the area.";
       }
 
       return JSON.stringify(

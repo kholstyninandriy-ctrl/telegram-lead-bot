@@ -9,7 +9,7 @@
  * their site.
  *
  * Optional attributes on the script tag:
- *   data-color="#1f6feb"   bubble colour
+ *   data-color="#047857"   bubble colour
  *   data-position="left"   corner to dock into (default: right)
  */
 (function () {
@@ -24,7 +24,7 @@
     document.currentScript ||
     document.querySelector('script[src*="embed.js"]');
   var origin = new URL(script.src, location.href).origin;
-  var color = script.getAttribute("data-color") || "#1f6feb";
+  var color = script.getAttribute("data-color") || "#047857";
   var side = script.getAttribute("data-position") === "left" ? "left" : "right";
 
   var BUBBLE_SIZE = 56;
@@ -122,11 +122,11 @@
    */
   window.aiReceptionist = {
     open: function (message) {
-      if (message) {
-        pending = String(message);
-        ready = false;
-      }
+      if (message) pending = String(message);
       setOpen(true);
+      // `ready` stays true once the chat has loaded, so clicking a second
+      // listing sends straight away instead of waiting for a handshake that
+      // already happened.
       flush();
     },
     close: function () {
