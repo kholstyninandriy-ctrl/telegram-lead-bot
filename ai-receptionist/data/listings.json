@@ -10,7 +10,13 @@
     "baths": 2,
     "sqft": 1180,
     "yearBuilt": 2019,
-    "highlights": ["Walk to Zilker Park", "Rooftop pool", "Covered parking"]
+    "highlights": [
+      "Walk to Zilker Park",
+      "Rooftop pool",
+      "Covered parking"
+    ],
+    "image": "/images/listing-zilker.webp",
+    "featured": true
   },
   {
     "id": "HV-1052",
@@ -23,7 +29,13 @@
     "baths": 2,
     "sqft": 1740,
     "yearBuilt": 1958,
-    "highlights": ["Renovated kitchen", "Large fenced yard", "Detached studio"]
+    "highlights": [
+      "Renovated kitchen",
+      "Large fenced yard",
+      "Detached studio"
+    ],
+    "image": "/images/listing-cherrywood.webp",
+    "featured": true
   },
   {
     "id": "HV-1067",
@@ -36,7 +48,13 @@
     "baths": 1,
     "sqft": 720,
     "yearBuilt": 2021,
-    "highlights": ["Downtown views", "Gym in building", "Short-term rental friendly"]
+    "highlights": [
+      "Downtown views",
+      "Gym in building",
+      "Short-term rental friendly"
+    ],
+    "image": "/images/listing-east-austin.webp",
+    "featured": true
   },
   {
     "id": "HV-1078",
@@ -49,7 +67,13 @@
     "baths": 3,
     "sqft": 2960,
     "yearBuilt": 1994,
-    "highlights": ["Hill country views", "Pool", "Top-rated school zone"]
+    "highlights": [
+      "Hill country views",
+      "Pool",
+      "Top-rated school zone"
+    ],
+    "image": "/images/listing-northwest-hills.webp",
+    "featured": true
   },
   {
     "id": "HV-1085",
@@ -62,7 +86,13 @@
     "baths": 2.5,
     "sqft": 1980,
     "yearBuilt": 2016,
-    "highlights": ["Two-car garage", "Private roof deck", "Walkable to SoCo shops"]
+    "highlights": [
+      "Two-car garage",
+      "Private roof deck",
+      "Walkable to SoCo shops"
+    ],
+    "image": "/images/listing-south-congress.webp",
+    "featured": true
   },
   {
     "id": "HV-1090",
@@ -75,7 +105,13 @@
     "baths": 2,
     "sqft": 1610,
     "yearBuilt": 2013,
-    "highlights": ["Solar panels", "Greenbelt across the street", "HOA park access"]
+    "highlights": [
+      "Solar panels",
+      "Greenbelt across the street",
+      "HOA park access"
+    ],
+    "image": "/images/listing-cherrywood.webp",
+    "featured": false
   },
   {
     "id": "HV-1103",
@@ -88,7 +124,13 @@
     "baths": 4.5,
     "sqft": 4420,
     "yearBuilt": 2008,
-    "highlights": ["Lake Austin access", "Guest casita", "Chef's kitchen"]
+    "highlights": [
+      "Lake Austin access",
+      "Guest casita",
+      "Chef's kitchen"
+    ],
+    "image": "/images/listing-northwest-hills.webp",
+    "featured": false
   },
   {
     "id": "HV-1118",
@@ -101,7 +143,13 @@
     "baths": 1,
     "sqft": 880,
     "yearBuilt": 1998,
-    "highlights": ["Lowest price per sqft in area", "Strong rental history", "Near light rail stop"]
+    "highlights": [
+      "Lowest price per sqft in area",
+      "Strong rental history",
+      "Near light rail stop"
+    ],
+    "image": "/images/listing-east-austin.webp",
+    "featured": false
   },
   {
     "id": "HV-1124",
@@ -114,7 +162,13 @@
     "baths": 2,
     "sqft": 1820,
     "yearBuilt": 1962,
-    "highlights": ["Under contract", "Backup offers welcome", "Original hardwood floors"]
+    "highlights": [
+      "Under contract",
+      "Backup offers welcome",
+      "Original hardwood floors"
+    ],
+    "image": "/images/listing-cherrywood.webp",
+    "featured": false
   },
   {
     "id": "HV-1136",
@@ -127,7 +181,13 @@
     "baths": 2,
     "sqft": 1440,
     "yearBuilt": 2020,
-    "highlights": ["18th floor", "Floor-to-ceiling windows", "Concierge building"]
+    "highlights": [
+      "18th floor",
+      "Floor-to-ceiling windows",
+      "Concierge building"
+    ],
+    "image": "/images/listing-rainey.webp",
+    "featured": true
   },
   {
     "id": "HV-1147",
@@ -140,7 +200,13 @@
     "baths": 2,
     "sqft": 1450,
     "yearBuilt": 2020,
-    "highlights": ["New construction", "Low tax rate", "15 min to airport"]
+    "highlights": [
+      "New construction",
+      "Low tax rate",
+      "15 min to airport"
+    ],
+    "image": "/images/listing-cherrywood.webp",
+    "featured": false
   },
   {
     "id": "HV-1155",
@@ -153,6 +219,12 @@
     "baths": 3,
     "sqft": 2100,
     "yearBuilt": 2011,
-    "highlights": ["Corner unit", "Walk to Lake Austin trail", "Quiet cul-de-sac"]
+    "highlights": [
+      "Corner unit",
+      "Walk to Lake Austin trail",
+      "Quiet cul-de-sac"
+    ],
+    "image": "/images/listing-south-congress.webp",
+    "featured": false
   }
 ]

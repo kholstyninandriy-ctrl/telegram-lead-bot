@@ -60,6 +60,9 @@ export default function ChatWidget({ agencyName, assistantName, welcomeMessage }
         body: JSON.stringify({
           conversationId: conversationId.current,
           message: trimmed,
+          // The browser owns the transcript: the server may be a fresh
+          // instance that has never seen this conversation.
+          history: messages,
           // The page the widget is embedded on, not the iframe's own URL.
           pageUrl: document.referrer || undefined,
         }),
@@ -67,6 +70,7 @@ export default function ChatWidget({ agencyName, assistantName, welcomeMessage }
 
       const data = await response.json();
       conversationId.current = data.conversationId ?? conversationId.current;
+      if (data.detail) console.error("[ai-receptionist]", data.detail);
       setMessages((prev) => [
         ...prev,
         { role: "assistant", text: data.reply ?? "Sorry, I didn't catch that." },

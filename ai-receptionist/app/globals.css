@@ -28,3 +28,28 @@ body.widget-body {
 }
 .typing-dot:nth-child(2) { animation-delay: 0.15s; }
 .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+/*
+ * The hero photo sits behind frosted glass and stays put while the page
+ * scrolls past it. iOS renders fixed attachment badly, so phones get a
+ * plain scrolling background instead.
+ */
+.hero-photo {
+  /* The 32px copy paints immediately; the full photo covers it once decoded. */
+  background-image: url("/images/hero.webp"), url("/images/hero-blur.webp");
+  background-size: cover, cover;
+  background-position: center 35%;
+  background-attachment: fixed;
+}
+
+@media (max-width: 900px) {
+  .hero-photo {
+    background-attachment: scroll;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-photo {
+    background-attachment: scroll;
+  }
+}

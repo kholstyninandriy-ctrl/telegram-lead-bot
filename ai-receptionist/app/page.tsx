@@ -6,13 +6,16 @@ import { formatPrice, listings } from "@/lib/listings";
  * A stand-in agency website, so the widget can be demonstrated in the place it
  * will actually live. Swap this page for the client's real site — or drop the
  * embed.js line onto their site — and nothing else changes.
+ *
+ * Every control on this page reaches the assistant, because on a demo a dead
+ * button reads as a broken product.
  */
 export default function HomePage() {
-  const featured = listings.filter((l) => l.status === "active").slice(0, 6);
+  const featured = listings.filter((listing) => listing.featured);
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-white/40 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2.5">
             <div
@@ -49,54 +52,89 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="mx-auto max-w-6xl px-6 pb-16 pt-20 text-center">
-        <p className="text-sm font-medium uppercase tracking-widest text-slate-500">
-          {agency.city}, {agency.state}
-        </p>
-        <h1 className="mx-auto mt-4 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
-          Find the right home in {agency.city} — without the runaround.
-        </h1>
-        <p className="mx-auto mt-5 max-w-xl text-lg text-slate-600">
-          {agency.name} specializes in {agency.specialty}. Every inquiry gets an answer in
-          seconds, day or night.
-        </p>
-        <div className="mt-8 flex items-center justify-center gap-3">
-          <a
-            href="#listings"
-            className="rounded-lg px-5 py-3 text-sm font-medium text-white transition hover:opacity-90"
-            style={{ backgroundColor: "var(--brand)" }}
-          >
-            Browse listings
-          </a>
-          <button
-            type="button"
-            data-ai-receptionist
-            data-ai-receptionist-message="I'd like to book a consultation."
-            className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-medium transition hover:border-slate-400 hover:bg-slate-50"
-          >
-            Book a consultation
-          </button>
+      <section className="relative isolate flex min-h-[86vh] items-center overflow-hidden">
+        <div className="hero-photo absolute inset-0 -z-10" aria-hidden="true" />
+        {/* Keeps the glass readable no matter how bright the photo is. */}
+        <div className="absolute inset-0 -z-10 bg-slate-900/25" aria-hidden="true" />
+
+        <div className="mx-auto w-full max-w-3xl px-6 py-20">
+          <div className="rounded-3xl bg-white/75 px-8 py-14 text-center shadow-[0_24px_80px_rgba(15,23,42,0.28)] ring-1 ring-white/60 backdrop-blur-2xl sm:px-14">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-600">
+              {agency.city}, {agency.state}
+            </p>
+            <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl">
+              Find the right home in {agency.city} — without the runaround.
+            </h1>
+            <p className="mx-auto mt-5 max-w-xl text-lg text-slate-700">
+              {agency.name} specializes in {agency.specialty}. Every inquiry gets an answer in
+              seconds, day or night.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <a
+                href="#listings"
+                className="rounded-lg px-5 py-3 text-sm font-medium text-white shadow-lg transition hover:opacity-90"
+                style={{ backgroundColor: "var(--brand)" }}
+              >
+                Browse listings
+              </a>
+              <button
+                type="button"
+                data-ai-receptionist
+                data-ai-receptionist-message="I'd like to book a consultation."
+                className="rounded-lg border border-slate-300 bg-white/70 px-5 py-3 text-sm font-medium transition hover:border-slate-400 hover:bg-white"
+              >
+                Book a consultation
+              </button>
+            </div>
+            <p className="mt-9 text-sm text-slate-600">
+              ↘︎ Every button on this page reaches the AI receptionist. Try it — or ask the bubble
+              in the corner about a three-bedroom under $600k.
+            </p>
+          </div>
         </div>
-        <p className="mt-10 text-sm text-slate-500">
-          ↘︎ Every button on this page reaches the AI receptionist. Try it — or ask the bubble
-          in the corner about a three-bedroom under $600k.
-        </p>
       </section>
 
-      <section id="listings" className="scroll-mt-16 border-t border-slate-200 bg-slate-50 py-16">
+      <section id="listings" className="scroll-mt-16 border-t border-slate-200 bg-white py-20">
         <div className="mx-auto max-w-6xl px-6">
-          <h2 className="text-2xl font-semibold tracking-tight">Featured listings</h2>
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight">Featured listings</h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Tap any home and the receptionist picks up the conversation about it.
+              </p>
+            </div>
+            <button
+              type="button"
+              data-ai-receptionist
+              data-ai-receptionist-message="What else do you have that isn't on the website?"
+              className="text-sm font-medium transition hover:underline"
+              style={{ color: "var(--brand)" }}
+            >
+              See what else is available →
+            </button>
+          </div>
+
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {featured.map((listing) => (
               <button
                 key={listing.id}
                 type="button"
                 data-ai-receptionist
                 data-ai-receptionist-message={`Tell me about ${listing.address}.`}
-                className="group overflow-hidden rounded-xl border border-slate-200 bg-white text-left transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg"
+                className="group overflow-hidden rounded-2xl border border-slate-200 bg-white text-left transition hover:-translate-y-1 hover:border-slate-300 hover:shadow-2xl"
               >
-                <div className="flex h-36 items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 text-xs font-medium uppercase tracking-widest text-slate-500">
-                  {listing.neighborhood}
+                <div className="relative h-52 overflow-hidden">
+                  <img
+                    src={listing.image}
+                    alt={`${listing.address}, ${listing.neighborhood}`}
+                    width={900}
+                    height={600}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  />
+                  <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-700 backdrop-blur">
+                    {listing.neighborhood}
+                  </span>
                 </div>
                 <div className="p-5">
                   <p className="text-lg font-semibold">{formatPrice(listing.price)}</p>
@@ -105,7 +143,7 @@ export default function HomePage() {
                     {listing.beds} bd · {listing.baths} ba · {listing.sqft.toLocaleString()} sqft
                   </p>
                   <p
-                    className="mt-3 text-xs font-medium opacity-0 transition group-hover:opacity-100"
+                    className="mt-4 text-xs font-medium opacity-0 transition group-hover:opacity-100"
                     style={{ color: "var(--brand)" }}
                   >
                     Ask about this home →
@@ -117,15 +155,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t border-slate-200 py-10">
+      <footer className="border-t border-slate-200 bg-slate-50 py-12">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 text-sm text-slate-500">
           <p className="font-medium text-slate-700">{agency.name}</p>
           <p>
             {agency.phone} · {agency.email}
           </p>
-          <p className="text-xs">
-            Demo site. Listings are illustrative and not offers of sale.
-          </p>
+          <p className="text-xs">Demo site. Listings are illustrative and not offers of sale.</p>
         </div>
       </footer>
 

@@ -1,5 +1,3 @@
-import type Anthropic from "@anthropic-ai/sdk";
-
 export type Intent = "buy" | "sell" | "rent" | "browsing";
 export type Timeline = "asap" | "1-3_months" | "3-6_months" | "6-12_months" | "just_looking";
 
@@ -31,19 +29,26 @@ export interface Booking {
   calendarEventId?: string;
 }
 
+/**
+ * One line of the conversation, exactly as the visitor saw it.
+ *
+ * The transcript is deliberately plain text rather than raw API content
+ * blocks: tool calls and the model's internal reasoning belong to a single
+ * request and replaying them across turns is what broke the deployed chat.
+ * Text replays safely on any model, survives a server restart, and is what
+ * the admin view wants anyway.
+ */
+export interface UiMessage {
+  role: "user" | "assistant";
+  text: string;
+}
+
 export interface Conversation {
   id: string;
   createdAt: string;
   updatedAt: string;
   pageUrl?: string;
-  /** Raw Claude turns — what we replay to the model on every request. */
-  messages: Anthropic.MessageParam[];
+  transcript: UiMessage[];
   lead: Lead;
   bookings: Booking[];
-}
-
-/** One row of the transcript as the browser and the admin table see it. */
-export interface UiMessage {
-  role: "user" | "assistant";
-  text: string;
 }

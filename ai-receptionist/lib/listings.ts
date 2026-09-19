@@ -12,6 +12,9 @@ export interface Listing {
   sqft: number;
   yearBuilt: number;
   highlights: string[];
+  image: string;
+  /** Shown in the website's own grid; the rest surface through the assistant. */
+  featured: boolean;
 }
 
 export const listings = listingsData as Listing[];
