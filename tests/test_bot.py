@@ -14,6 +14,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["DB_PATH"] = os.path.join(tempfile.mkdtemp(), "test_notes.db")
 os.environ["SEARCH_CACHE_TTL_MIN"] = "60"
 
+import apify  # noqa: E402
+import config  # noqa: E402
 import db  # noqa: E402
 import enrich  # noqa: E402
 import places  # noqa: E402
@@ -295,6 +297,133 @@ class FetchContactsTests(unittest.IsolatedAsyncioTestCase):
         await enrich.enrich_many(leads)
         self.assertTrue(all("instagram_url" in lead for lead in leads))
         self.assertTrue(all(lead["email"] == "" for lead in leads))
+
+
+class ApifyTests(unittest.IsolatedAsyncioTestCase):
+    """Apify-добір: без токена мовчить, з токеном дописує email і соцмережі."""
+
+    def setUp(self):
+        self.original_token = config.APIFY_TOKEN
+        config.APIFY_TOKEN = "test-token"
+        self.original_run = apify.run_actor
+
+    def tearDown(self):
+        config.APIFY_TOKEN = self.original_token
+        apify.run_actor = self.original_run
+
+    def _return_items(self, items):
+        self.payloads = []
+
+        async def fake_run(actor, payload):
+            self.payloads.append(payload)
+            return items
+        apify.run_actor = fake_run
+
+    def test_domain_normalisation(self):
+        self.assertEqual(apify.domain_of("https://WWW.Cafe.com/contact"), "cafe.com")
+        self.assertEqual(apify.domain_of("cafe.com"), "cafe.com")
+        self.assertEqual(apify.domain_of(""), "")
+
+    def test_reads_string_and_list_fields(self):
+        self.assertEqual(apify._values({"emails": ["a@b.com"]}, apify.EMAIL_KEYS), ["a@b.com"])
+        self.assertEqual(apify._values({"email": "a@b.com"}, apify.EMAIL_KEYS), ["a@b.com"])
+        self.assertEqual(apify._values({"emails": []}, apify.EMAIL_KEYS), [])
+        self.assertEqual(apify._values({}, apify.EMAIL_KEYS), [])
+
+    def test_items_grouped_by_domain(self):
+        items = [
+            {"url": "https://cafe.com/", "emails": [], "instagrams": []},
+            {"url": "https://cafe.com/contact", "emails": ["info@cafe.com"],
+             "instagrams": ["https://instagram.com/cafe.kyiv"]},
+            {"url": "https://bar.com/", "emails": ["hi@bar.com"]},
+        ]
+        grouped = apify.index_items(items)
+        self.assertEqual(grouped["cafe.com"]["emails"], ["info@cafe.com"])
+        self.assertEqual(grouped["bar.com"]["emails"], ["hi@bar.com"])
+
+    async def test_without_token_does_nothing(self):
+        config.APIFY_TOKEN = ""
+        self._return_items([{"url": "https://cafe.com", "emails": ["x@cafe.com"]}])
+        leads = [{"website": "https://cafe.com", "email": ""}]
+        self.assertEqual(await apify.enrich_missing(leads), 0)
+        self.assertEqual(leads[0]["email"], "")
+
+    async def test_fills_email_and_socials(self):
+        self._return_items([{
+            "url": "https://cafe.com/kontakt",
+            "emails": ["Noreply@cafe.com", "info@cafe.com"],
+            "instagrams": ["https://www.instagram.com/cafe.kyiv/"],
+            "facebooks": ["https://facebook.com/cafekyiv"],
+        }])
+        leads = [{"website": "https://cafe.com", "email": "", "name": "Cafe"}]
+        found = await apify.enrich_missing(leads)
+        self.assertEqual(found, 1)
+        self.assertEqual(leads[0]["email"], "info@cafe.com")   # noreply@ відкинуто
+        self.assertEqual(leads[0]["email_source"], "apify")
+        self.assertTrue(leads[0]["instagram_verified"])
+        self.assertEqual(leads[0]["instagram"], "cafe.kyiv")
+        self.assertEqual(leads[0]["facebook"], "cafekyiv")
+
+    async def test_only_sites_without_email_are_sent(self):
+        self._return_items([])
+        leads = [
+            {"website": "https://has.com", "email": "x@has.com"},
+            {"website": "https://blind.com", "email": ""},
+            {"website": "", "email": ""},
+        ]
+        await apify.enrich_missing(leads)
+        urls = [entry["url"] for entry in self.payloads[0]["startUrls"]]
+        self.assertEqual(urls, ["https://blind.com"])
+
+    async def test_site_limit_is_respected(self):
+        self._return_items([])
+        original_limit = config.APIFY_MAX_SITES
+        config.APIFY_MAX_SITES = 2
+        try:
+            leads = [{"website": f"https://s{i}.com", "email": ""} for i in range(10)]
+            await apify.enrich_missing(leads)
+            self.assertEqual(len(self.payloads[0]["startUrls"]), 2)
+        finally:
+            config.APIFY_MAX_SITES = original_limit
+
+    async def test_no_targets_means_no_run(self):
+        self._return_items([])
+        self.assertEqual(await apify.enrich_missing([{"website": "", "email": ""}]), 0)
+        self.assertEqual(self.payloads, [])
+
+    async def test_actor_failure_does_not_break_search(self):
+        async def boom(actor, payload):
+            raise apify.ApifyError("APIFY_TOKEN недійсний.")
+        apify.run_actor = boom
+        leads = [{"website": "https://cafe.com", "email": ""}]
+        self.assertEqual(await apify.enrich_missing(leads), 0)
+        self.assertEqual(leads[0]["email"], "")
+
+    async def test_run_actor_polls_until_finished(self):
+        states = [{"status": "RUNNING", "defaultDatasetId": "ds1"},
+                  {"status": "SUCCEEDED", "defaultDatasetId": "ds1"}]
+        calls = {"state": 0}
+
+        async def fake_start(actor, payload):
+            return "run-1"
+
+        async def fake_state(run_id):
+            index = min(calls["state"], len(states) - 1)
+            calls["state"] += 1
+            return states[index]
+
+        async def fake_items(dataset_id):
+            self.assertEqual(dataset_id, "ds1")
+            return [{"url": "https://cafe.com", "emails": ["a@cafe.com"]}]
+
+        apify.start_run, apify.run_state, apify.dataset_items = fake_start, fake_state, fake_items
+        apify.POLL_INTERVAL = 0.01
+        try:
+            items = await apify.run_actor("actor", {"startUrls": []})
+        finally:
+            apify.POLL_INTERVAL = 3.0
+        self.assertEqual(items[0]["emails"], ["a@cafe.com"])
+        self.assertGreaterEqual(calls["state"], 2)
 
 
 class DatabaseTests(unittest.IsolatedAsyncioTestCase):

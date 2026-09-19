@@ -319,6 +319,48 @@ async def enrich_many(leads: list[dict]) -> None:
                         lead.get("name", ""), lead.get("city", "")
                     ),
                 }
+            if contacts.get("email"):
+                contacts["email_source"] = "site"
             lead.update(contacts)
 
     await asyncio.gather(*(worker(lead) for lead in leads))
+
+
+# ─── Діагностика (команда /diag) ──────────────────────────────────────────────
+
+CLOUDFLARE_MARKERS = (
+    "cf-browser-verification", "cdn-cgi/challenge-platform", "__cf_chl",
+    "checking your browser", "attention required! | cloudflare",
+)
+
+
+async def probe_site(website: str) -> dict:
+    """Показує, що саме бот бачить на сайті — щоб не гадати, чому немає email."""
+    report = {
+        "url": normalize_website(website), "status": None, "length": 0,
+        "content_type": "", "error": "", "emails": [], "cf_protected": False,
+        "cf_challenge": False, "instagram": "", "facebook": "", "contact_links": [],
+    }
+    if not report["url"]:
+        report["error"] = "порожня адреса"
+        return report
+
+    try:
+        response = await client().get(report["url"], timeout=SITE_TIMEOUT,
+                                      headers=BROWSER_HEADERS)
+    except httpx.HTTPError as exc:
+        report["error"] = f"{type(exc).__name__}: {exc}"
+        return report
+
+    page = response.text or ""
+    report["status"] = response.status_code
+    report["length"] = len(page)
+    report["content_type"] = response.headers.get("content-type", "")[:40]
+    lowered = page.lower()
+    report["cf_protected"] = bool(CFEMAIL_RE.search(page) or CF_LINK_RE.search(page))
+    report["cf_challenge"] = any(marker in lowered for marker in CLOUDFLARE_MARKERS)
+    report["emails"] = extract_emails(page)[:5]
+    report["instagram"] = pick_instagram(page)
+    report["facebook"] = pick_facebook(page)
+    report["contact_links"] = contact_urls(page, report["url"])
+    return report

@@ -40,6 +40,7 @@ BOT_COMMANDS = [
     BotCommand("export", "📤 Експорт нотаток у CSV"),
     BotCommand("export_search", "📊 Експорт останнього пошуку"),
     BotCommand("help", "📖 Інструкція"),
+    BotCommand("diag", "🩺 Перевірити налаштування"),
     BotCommand("cancel", "❌ Скасувати дію"),
 ]
 
@@ -49,9 +50,11 @@ async def post_init(application: Application) -> None:
     await application.bot.set_my_commands(BOT_COMMANDS)
     await notes.restore_reminders(application)
     logger.info(
-        "Готово. Google: %s · OpenAI: %s · доступ: %s",
+        "Готово. Версія %s · Google: %s · OpenAI: %s · Apify: %s · доступ: %s",
+        config.BOT_VERSION,
         "є" if config.has_google() else "НЕМАЄ",
         "є" if config.has_ai() else "НЕМАЄ",
+        config.APIFY_CONTACT_ACTOR if config.has_apify() else "НЕМАЄ",
         f"{len(config.ALLOWED_USER_IDS)} користувач(ів)"
         if config.ALLOWED_USER_IDS else "відкритий",
     )
@@ -90,6 +93,7 @@ def build_application() -> Application:
     application.add_handler(CommandHandler("export", notes.export_notes))
     application.add_handler(CommandHandler("export_search", notes.export_search))
     application.add_handler(CommandHandler("delete_note", notes.delete_note_cmd))
+    application.add_handler(CommandHandler("diag", common.diag_cmd))
     application.add_handler(CommandHandler("cancel", common.cancel))
 
     for handler in search_callbacks:

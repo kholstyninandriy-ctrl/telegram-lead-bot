@@ -11,7 +11,7 @@ from telegram.ext import ApplicationHandlerStop, ContextTypes, ConversationHandl
 import config
 import db
 import texts
-from ui import STATUS_LABELS, esc, send_html
+from ui import STATUS_LABELS, code, esc, send_html
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     name = esc(user.first_name if user else "друже")
     await send_html(
         update.message,
-        texts.START_TEXT.format(name=name) + _missing_keys_warning(),
+        texts.START_TEXT.format(name=name)
+        + f"\n\n<i>версія {config.BOT_VERSION} · /diag — перевірити налаштування</i>"
+        + _missing_keys_warning(),
         reply_markup=MAIN_KEYBOARD,
     )
 
@@ -96,7 +98,7 @@ async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 # зависшим — доводилось вручну шукати /cancel.
 OTHER_COMMANDS = [
     "find_leads", "outreach", "add_note", "notes", "stats",
-    "export", "export_search", "delete_note", "help",
+    "export", "export_search", "delete_note", "help", "diag",
 ]
 
 
@@ -159,6 +161,87 @@ async def stats_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     ]
     if interested and not deals:
         lines.append("\n💡 Є зацікавлені, але ще немає угод — варто пройтись по них повторно.")
+    await send_html(update.message, "\n".join(lines))
+
+
+async def diag_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/diag — що реально бачить бот. Без аргументів: версія і підключені сервіси.
+    З URL: показує, чому на конкретному сайті не знайшовся email."""
+    import enrich
+
+    lines = [
+        f"🩺 <b>Діагностика</b> · версія бота <b>{config.BOT_VERSION}</b>",
+        "",
+        f"🔍 Google Places: {'✅ підключено' if config.has_google() else '❌ немає ключа'}",
+        f"🤖 OpenAI: {'✅ підключено' if config.has_ai() else '❌ немає ключа'}",
+        f"🕵️ Apify (браузерний добір email): "
+        f"{'✅ ' + esc(config.APIFY_CONTACT_ACTOR) if config.has_apify() else '❌ немає APIFY_TOKEN'}",
+    ]
+
+    if not context.args:
+        lines += [
+            "",
+            "Щоб перевірити конкретний сайт:",
+            "<code>/diag https://example.com</code>",
+        ]
+        await send_html(update.message, "\n".join(lines))
+        return
+
+    website = context.args[0]
+    probe = await enrich.probe_site(website)
+    lines += ["", f"🌐 <b>{esc(probe['url'])}</b>"]
+
+    if probe["error"]:
+        lines.append(f"❌ Сайт не відповів: {esc(probe['error'])}")
+    else:
+        lines.append(f"HTTP {probe['status']} · {probe['length']} символів · "
+                     f"{esc(probe['content_type'])}")
+        if probe["status"] == 403:
+            lines.append("🚫 Сайт блокує нас (403) — саме тут Apify і рятує.")
+        if probe["cf_challenge"]:
+            lines.append("🛡 Cloudflare-челендж: без справжнього браузера сторінку не взяти.")
+        if probe["cf_protected"]:
+            lines.append("🔐 На сторінці є пошта під захистом Cloudflare — бот її розшифровує.")
+        if probe["length"] < 2000 and probe["status"] == 200:
+            lines.append("⚠️ Сторінка майже порожня — контент, найпевніше, малює JavaScript.")
+        if probe["emails"]:
+            found = ", ".join(code(email) for email in probe["emails"])
+            lines.append(f"✉️ Знайдено: {found}")
+        else:
+            lines.append("✉️ Email у HTML немає.")
+        if probe["contact_links"]:
+            links = ", ".join(esc(url) for url in probe["contact_links"])
+            lines.append(f"🔗 Сторінки контактів: {links}")
+        if probe["instagram"]:
+            lines.append(f"📸 Instagram: @{esc(probe['instagram'])}")
+
+    if not probe["emails"] and config.has_apify():
+        lines.append("\n🕵️ Пробую через Apify…")
+        await send_html(update.message, "\n".join(lines))
+
+        import apify
+        lead = {"website": probe["url"] or website, "email": ""}
+        try:
+            found = await apify.enrich_missing([lead])
+        except Exception as exc:
+            await send_html(update.message, f"❌ Apify: {esc(exc)}")
+            return
+        if found and lead.get("email"):
+            await send_html(
+                update.message,
+                f"✅ Apify дістав: {code(lead['email'])}\n"
+                "Значить, на цьому сайті бот бере пошту лише браузером.",
+            )
+        else:
+            await send_html(
+                update.message,
+                "🤷 Навіть Apify нічого не знайшов — найімовірніше, email на сайті "
+                "просто немає (тільки форма зворотного зв'язку).",
+            )
+        return
+
+    if not probe["emails"] and not config.has_apify():
+        lines.append("\n💡 Додай <code>APIFY_TOKEN</code> — бот добере пошту браузером.")
     await send_html(update.message, "\n".join(lines))
 
 

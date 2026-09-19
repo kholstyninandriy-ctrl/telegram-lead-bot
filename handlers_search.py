@@ -21,6 +21,7 @@ from telegram.ext import (
 
 import ai
 import config
+import apify
 import db
 import places as places_api
 from enrich import enrich_many
@@ -253,6 +254,20 @@ async def run_search(update: Update, context: ContextTypes.DEFAULT_TYPE, count: 
     leads = [build_lead(place, niche, country, city) for place in raw_places]
     await enrich_many(leads)
 
+    # Власний парсер безсилий проти Cloudflare-челенджів і JS-сайтів —
+    # там, де він не дістав email, добираємо через Apify (справжній браузер).
+    if config.has_apify():
+        blind = [lead for lead in leads if lead.get("website") and not lead.get("email")]
+        if blind:
+            try:
+                await status.edit_text(
+                    f"🕵️ Email не знайшовся на {len(blind)} сайтах — "
+                    "добираю через Apify (це до кількох хвилин)…"
+                )
+            except Exception:
+                pass
+            await apify.enrich_missing(leads)
+
     contacted = await db.acontacted_keys(user_id)
     for lead in leads:
         lead["score"], lead["score_mark"] = score_lead(lead)
@@ -293,6 +308,7 @@ async def run_search(update: Update, context: ContextTypes.DEFAULT_TYPE, count: 
     no_website = sum(1 for lead in leads if not lead.get("website"))
     in_crm = sum(1 for lead in leads if lead.get("in_crm"))
 
+    via_apify = sum(1 for lead in leads if lead.get("email_source") == "apify")
     summary = [
         f"🏁 <b>Готово! Проаналізовано {len(leads)} лідів</b>",
         "",
@@ -300,10 +316,19 @@ async def run_search(update: Update, context: ContextTypes.DEFAULT_TYPE, count: 
         f"📞 З валідним телефоном: <b>{with_phone}</b>",
         f"✉️ З email: <b>{with_email}</b>"
         + (f" <i>(у {no_website} немає сайту — email там не існує)</i>" if no_website else ""),
-        f"📸 З Instagram: <b>{with_instagram}</b>",
     ]
+    if via_apify:
+        summary.append(f"    <i>↳ {via_apify} з них дістав Apify (браузером)</i>")
+    summary.append(f"📸 З Instagram: <b>{with_instagram}</b>")
     if in_crm:
         summary.append(f"🗂 Вже у твоїй CRM: <b>{in_crm}</b>")
+    blind_sites = sum(1 for lead in leads
+                      if lead.get("website") and not lead.get("email"))
+    if blind_sites and not config.has_apify():
+        summary.append(
+            f"\n💡 На {blind_sites} сайтах email захищений Cloudflare або малюється JS. "
+            "Додай <code>APIFY_TOKEN</code> — бот дістане їх браузером."
+        )
     summary += [
         "",
         "📤 /export_search — вивантажити ці ліди в CSV",

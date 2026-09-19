@@ -9,6 +9,9 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 
+# Видно в /start і в логах — щоб одразу бачити, яка версія реально запущена.
+BOT_VERSION = "2.2"
+
 
 def _env(name: str, default: str = "") -> str:
     return (os.environ.get(name) or default).strip()
@@ -45,7 +48,7 @@ ALLOWED_USER_IDS = frozenset(
 MAX_RESULTS = max(1, min(60, _env_int("MAX_RESULTS", 60)))   # стеля для /find_leads
 PAGE_SIZE = 20                                               # ліміт Google на сторінку
 HTTP_TIMEOUT = _env_int("HTTP_TIMEOUT", 15)                  # Google Places
-SITE_TIMEOUT = _env_int("SITE_TIMEOUT", 8)                   # сайти бізнесів
+SITE_TIMEOUT = _env_int("SITE_TIMEOUT", 10)                   # сайти бізнесів
 ENRICH_CONCURRENCY = max(1, _env_int("ENRICH_CONCURRENCY", 6))
 SEARCH_CACHE_TTL_MIN = _env_int("SEARCH_CACHE_TTL_MIN", 180)  # 0 = кеш вимкнено
 try:
@@ -53,6 +56,23 @@ try:
 except ValueError:
     SEND_DELAY = 0.35
 AI_TIMEOUT = _env_int("AI_TIMEOUT", 60)
+
+# ─── Apify (платне збагачення контактів) ─────────────────────────────────────
+# Власний парсер безкоштовний, але безсилий проти Cloudflare-челенджів і
+# сайтів, які малюються JavaScript-ом. Apify заходить справжнім браузером
+# через проксі — тому використовуємо його ДОБИРАЛЬНИКОМ: лише для тих лідів,
+# у яких є сайт, але email не знайшовся. Так платимо центи, а не за кожен лід.
+APIFY_TOKEN = _env("APIFY_TOKEN")
+APIFY_CONTACT_ACTOR = _env("APIFY_CONTACT_ACTOR", "vdrmota~contact-info-scraper")
+APIFY_TIMEOUT = _env_int("APIFY_TIMEOUT", 180)        # скільки чекати на прогін, с
+APIFY_MAX_SITES = _env_int("APIFY_MAX_SITES", 30)     # стеля сайтів на один пошук
+APIFY_PAGES_PER_SITE = _env_int("APIFY_PAGES_PER_SITE", 10)
+APIFY_MAX_DEPTH = _env_int("APIFY_MAX_DEPTH", 1)
+APIFY_MEMORY_MB = _env_int("APIFY_MEMORY_MB", 2048)
+
+
+def has_apify() -> bool:
+    return bool(APIFY_TOKEN)
 
 LOG_LEVEL = _env("LOG_LEVEL", "INFO").upper()
 
