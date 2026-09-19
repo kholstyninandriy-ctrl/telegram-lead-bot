@@ -100,9 +100,58 @@
     setOpen(!open);
   });
 
+  // A message asked for before the chat finished loading waits here.
+  var pending = null;
+  var ready = false;
+
+  function flush() {
+    if (!ready || !pending) return;
+    frame.contentWindow.postMessage({ type: "ai-receptionist:prefill", text: pending }, origin);
+    pending = null;
+  }
+
+  /**
+   * What the host page can call:
+   *   aiReceptionist.open()               open the chat
+   *   aiReceptionist.open("I want a...")  open it and send that message
+   *   aiReceptionist.close()
+   *
+   * Or, with no JavaScript at all, put data-ai-receptionist on any element:
+   *   <button data-ai-receptionist>Talk to us</button>
+   *   <a data-ai-receptionist data-ai-receptionist-message="Tell me about 1041 Barton Springs">…</a>
+   */
+  window.aiReceptionist = {
+    open: function (message) {
+      if (message) {
+        pending = String(message);
+        ready = false;
+      }
+      setOpen(true);
+      flush();
+    },
+    close: function () {
+      setOpen(false);
+    },
+    toggle: function () {
+      setOpen(!open);
+    },
+  };
+
+  // Delegated, so it also picks up elements added to the page later.
+  document.addEventListener("click", function (event) {
+    var trigger = event.target.closest && event.target.closest("[data-ai-receptionist]");
+    if (!trigger) return;
+    event.preventDefault();
+    window.aiReceptionist.open(trigger.getAttribute("data-ai-receptionist-message"));
+  });
+
   window.addEventListener("message", function (event) {
-    if (event.origin !== origin) return;
-    if (event.data && event.data.type === "ai-receptionist:close") setOpen(false);
+    if (event.origin !== origin || !event.data) return;
+    if (event.data.type === "ai-receptionist:close") setOpen(false);
+    if (event.data.type === "ai-receptionist:ready") {
+      ready = true;
+      flush();
+    }
   });
 
   document.addEventListener("keydown", function (event) {

@@ -25,6 +25,26 @@ export default function ChatWidget({ agencyName, assistantName, welcomeMessage }
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, busy]);
 
+  // Keeps the message listener below pointing at the current send().
+  const sendRef = useRef<(text: string) => void>(() => {});
+  useEffect(() => {
+    sendRef.current = send;
+  });
+
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      // The host page can ask us to start with a question already asked —
+      // e.g. someone clicked "Ask about this property".
+      if (event.source !== window.parent || event.data?.type !== "ai-receptionist:prefill") return;
+      if (typeof event.data.text === "string") sendRef.current(event.data.text);
+    }
+
+    window.addEventListener("message", onMessage);
+    // Tell the host page we can receive messages now.
+    window.parent.postMessage({ type: "ai-receptionist:ready" }, "*");
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
   async function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed || busy) return;

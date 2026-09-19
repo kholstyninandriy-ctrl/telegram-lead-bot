@@ -23,9 +23,25 @@ export default function HomePage() {
             <span className="text-lg font-semibold tracking-tight">{agency.name}</span>
           </div>
           <nav className="hidden items-center gap-7 text-sm text-slate-600 sm:flex">
-            <span>Buy</span>
-            <span>Sell</span>
-            <span>Agents</span>
+            <a href="#listings" className="transition hover:text-slate-900">
+              Buy
+            </a>
+            <button
+              type="button"
+              data-ai-receptionist
+              data-ai-receptionist-message="I'm thinking about selling my home."
+              className="transition hover:text-slate-900"
+            >
+              Sell
+            </button>
+            <button
+              type="button"
+              data-ai-receptionist
+              data-ai-receptionist-message="Can I speak with one of your agents?"
+              className="transition hover:text-slate-900"
+            >
+              Agents
+            </button>
             <a href={`tel:${agency.phone.replace(/\D/g, "")}`} className="font-medium text-slate-900">
               {agency.phone}
             </a>
@@ -45,30 +61,39 @@ export default function HomePage() {
           seconds, day or night.
         </p>
         <div className="mt-8 flex items-center justify-center gap-3">
-          <span
-            className="rounded-lg px-5 py-3 text-sm font-medium text-white"
+          <a
+            href="#listings"
+            className="rounded-lg px-5 py-3 text-sm font-medium text-white transition hover:opacity-90"
             style={{ backgroundColor: "var(--brand)" }}
           >
             Browse listings
-          </span>
-          <span className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-medium">
+          </a>
+          <button
+            type="button"
+            data-ai-receptionist
+            data-ai-receptionist-message="I'd like to book a consultation."
+            className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-medium transition hover:border-slate-400 hover:bg-slate-50"
+          >
             Book a consultation
-          </span>
+          </button>
         </div>
         <p className="mt-10 text-sm text-slate-500">
-          ↘︎ The chat bubble in the corner is the AI receptionist. Try asking it about a
-          three-bedroom under $600k.
+          ↘︎ Every button on this page reaches the AI receptionist. Try it — or ask the bubble
+          in the corner about a three-bedroom under $600k.
         </p>
       </section>
 
-      <section className="border-t border-slate-200 bg-slate-50 py-16">
+      <section id="listings" className="scroll-mt-16 border-t border-slate-200 bg-slate-50 py-16">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-2xl font-semibold tracking-tight">Featured listings</h2>
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {featured.map((listing) => (
-              <article
+              <button
                 key={listing.id}
-                className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+                type="button"
+                data-ai-receptionist
+                data-ai-receptionist-message={`Tell me about ${listing.address}.`}
+                className="group overflow-hidden rounded-xl border border-slate-200 bg-white text-left transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg"
               >
                 <div className="flex h-36 items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 text-xs font-medium uppercase tracking-widest text-slate-500">
                   {listing.neighborhood}
@@ -79,8 +104,14 @@ export default function HomePage() {
                   <p className="mt-3 text-xs text-slate-500">
                     {listing.beds} bd · {listing.baths} ba · {listing.sqft.toLocaleString()} sqft
                   </p>
+                  <p
+                    className="mt-3 text-xs font-medium opacity-0 transition group-hover:opacity-100"
+                    style={{ color: "var(--brand)" }}
+                  >
+                    Ask about this home →
+                  </p>
                 </div>
-              </article>
+              </button>
             ))}
           </div>
         </div>
