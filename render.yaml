@@ -1,0 +1,50 @@
+services:
+  # AI-Рецепціоніст (чат-віджет + Vapi webhook + бронювання)
+  - type: web
+    name: ai-receptionist
+    runtime: python
+    rootDir: receptionist
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
+      - key: BUSINESS_TIMEZONE
+        value: Europe/Kyiv
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: VAPI_SECRET
+        generateValue: true
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: OWNER_CHAT_ID
+        sync: false
+      - key: CALCOM_API_KEY
+        sync: false
+      - key: CALCOM_EVENT_TYPE_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: GOOGLE_CALENDAR_ID
+        sync: false
+
+  # Lead Finder Telegram-бот
+  - type: worker
+    name: lead-finder-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false

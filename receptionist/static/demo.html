@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Receptionist — Demo</title>
+<style>
+  :root { --brand: #2563eb; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; background: #f8fafc; }
+  header { padding: 18px 24px; display: flex; align-items: center; gap: 12px; background: #fff; border-bottom: 1px solid #e2e8f0; }
+  header img { height: 36px; }
+  header .name { font-weight: 700; font-size: 18px; }
+  .hero { max-width: 960px; margin: 0 auto; padding: 64px 24px 40px; }
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--brand) 12%, white); color: var(--brand); font-weight: 600; font-size: 13px; }
+  h1 { font-size: clamp(30px, 5vw, 48px); line-height: 1.12; margin: 16px 0; }
+  .lead { font-size: 19px; color: #475569; max-width: 640px; }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .cta { padding: 14px 22px; border-radius: 12px; font-weight: 700; text-decoration: none; border: 0; cursor: pointer; font-size: 16px; }
+  .cta.primary { background: var(--brand); color: #fff; }
+  .cta.dark { background: #0f172a; color: #fff; }
+  .grid { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 20px; }
+  .card b { display: block; margin-bottom: 6px; }
+  .card span { color: #64748b; font-size: 15px; }
+</style>
+</head>
+<body>
+<header><img id="logo" alt="" hidden /><span class="name" id="bizName">Skyline Realty</span></header>
+
+<section class="hero">
+  <span class="badge">🤖 AI-адміністратор 24/7</span>
+  <h1 id="headline">Спробуйте записатися прямо зараз — вам відповість AI</h1>
+  <p class="lead" id="sub">Він відповідає за 2–3 секунди, уточнює потребу, пропонує вільний час і створює запис у календарі. Без менеджера й без очікування.</p>
+  <div class="ctas">
+    <button class="cta primary" onclick="AIReceptionist.open()">💬 Написати в чат</button>
+    <a class="cta dark" id="callBtn" hidden>📞 Зателефонувати AI</a>
+  </div>
+</section>
+
+<section class="grid">
+  <div class="card"><b>⚡ Миттєва відповідь</b><span>Жоден лід не чекає до ранку — навіть о 23:00 у неділю.</span></div>
+  <div class="card"><b>📅 Автозапис у календар</b><span>Google Calendar або Cal.com — зустріч з'являється одразу після діалогу.</span></div>
+  <div class="card"><b>📲 Сповіщення власнику</b><span>Ім'я, телефон і час запису миттєво приходять у Telegram.</span></div>
+  <div class="card"><b>🌍 Будь-якою мовою</b><span>Відповідає мовою клієнта: українська, англійська, польська…</span></div>
+</section>
+
+<script>
+  // Кастомізація під клієнта через URL:
+  // /?business=Smile%20Dental&niche=dental&color=%2310b981&phone=%2B15551234567&logo=https://…/logo.png
+  (function () {
+    var p = new URLSearchParams(location.search);
+    var defaults = { real_estate: "Skyline Realty", dental: "Smile Dental", beauty: "Glow Studio", auto: "Pro Auto Service" };
+    var niche = p.get("niche") || "real_estate";
+    var business = p.get("business") || defaults[niche] || "Skyline Realty";
+    var color = p.get("color") || "#2563eb";
+    var phone = p.get("phone") || "";
+
+    document.documentElement.style.setProperty("--brand", color);
+    document.getElementById("bizName").textContent = business;
+    document.title = business + " — AI Receptionist";
+    if (p.get("logo")) { var l = document.getElementById("logo"); l.src = p.get("logo"); l.hidden = false; }
+    if (phone) { var c = document.getElementById("callBtn"); c.href = "tel:" + phone; c.textContent = "📞 Зателефонувати AI: " + phone; c.hidden = false; }
+
+    window.AIReceptionistConfig = { business: business, niche: niche, color: color, phone: phone, open: "true" };
+    var s = document.createElement("script");
+    s.src = "/widget.js";
+    document.body.appendChild(s);
+  })();
+</script>
+</body>
+</html>
