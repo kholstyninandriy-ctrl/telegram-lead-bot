@@ -48,8 +48,13 @@
 <script>
   // Кастомізація під клієнта через URL:
   // /?business=Smile%20Dental&niche=dental&color=%2310b981&phone=%2B15551234567&logo=https://…/logo.png
+  // Адреса бекенду (Render). Порожньо = той самий домен (коли сторінку віддає сам app.py).
+  // Для Netlify/Vercel впиши сюди URL з Render, напр. "https://ai-receptionist.onrender.com"
+  var API_URL = "";
+
   (function () {
     var p = new URLSearchParams(location.search);
+    var api = (p.get("api") || API_URL).replace(/\/$/, "");
     var defaults = { real_estate: "Skyline Realty", dental: "Smile Dental", beauty: "Glow Studio", auto: "Pro Auto Service" };
     var niche = p.get("niche") || "real_estate";
     var business = p.get("business") || defaults[niche] || "Skyline Realty";
@@ -62,9 +67,9 @@
     if (p.get("logo")) { var l = document.getElementById("logo"); l.src = p.get("logo"); l.hidden = false; }
     if (phone) { var c = document.getElementById("callBtn"); c.href = "tel:" + phone; c.textContent = "📞 Зателефонувати AI: " + phone; c.hidden = false; }
 
-    window.AIReceptionistConfig = { business: business, niche: niche, color: color, phone: phone, open: "true" };
+    window.AIReceptionistConfig = { api: api, business: business, niche: niche, color: color, phone: phone, open: "true" };
     var s = document.createElement("script");
-    s.src = "/widget.js";
+    s.src = "widget.js";
     document.body.appendChild(s);
   })();
 </script>
