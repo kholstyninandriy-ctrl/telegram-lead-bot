@@ -53,6 +53,7 @@ app.add_middleware(
 # ─── Сесії чату (в пам'яті, для демо достатньо) ───────────────────────────────
 MAX_SESSIONS = 2000
 SESSION_TTL = 60 * 60
+MAX_HISTORY = 80
 sessions: "OrderedDict[str, dict]" = OrderedDict()
 
 
@@ -62,7 +63,7 @@ def _get_session(sid: str | None) -> tuple[str, dict]:
         sessions.pop(k, None)
     if not sid or sid not in sessions:
         sid = secrets.token_urlsafe(12)
-        sessions[sid] = {"history": [], "ts": now}
+        sessions[sid] = {"history": [], "system": None, "ts": now}
     sessions.move_to_end(sid)
     while len(sessions) > MAX_SESSIONS:
         sessions.popitem(last=False)
@@ -86,13 +87,16 @@ def chat(body: ChatIn):
         "business_name": body.business_name,
         "services": body.services,
     }
+    if sess["system"] is None:  # system фіксується на всю сесію (вимога Claude)
+        sess["system"] = receptionist.build_system(profile, channel="chat")
+    if len(sess["history"]) > MAX_HISTORY:  # довгий діалог → починаємо нову сесію
+        sid, sess = _get_session(None)
+        sess["system"] = receptionist.build_system(profile, channel="chat")
+    ctx = {"channel": "chat", "business": profile["business_name"], "niche": profile["niche"]}
     history = sess["history"] + [{"role": "user", "content": body.message}]
     t0 = time.time()
-    text, new_history = receptionist.reply(history, profile, channel="chat")
-    sess["history"] = new_history[-30:]
-    # не залишаємо «осиротілі» tool-повідомлення на початку після обрізки
-    while sess["history"] and sess["history"][0]["role"] != "user":
-        sess["history"].pop(0)
+    # історія лише дописується, ніколи не обрізається з початку
+    text, sess["history"] = receptionist.reply(history, sess["system"], ctx)
     logger.info("chat %s: %.2fs", sid[:6], time.time() - t0)
     return {"session_id": sid, "reply": text}
 
@@ -170,7 +174,8 @@ def health():
     return {
         "ok": True,
         "calendar": calendar.name,
-        "openai": receptionist.client is not None,
+        "llm": receptionist.provider,
+        "model": getattr(receptionist, "model", None),
         "time": datetime.now(TZ).isoformat(),
     }
 

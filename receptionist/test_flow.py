@@ -76,3 +76,54 @@ cfg = c.get("/api/vapi/assistant-config?niche=dental").json()
 assert cfg["model"]["tools"][0]["server"]["url"].endswith("/api/vapi/tools")
 assert c.get("/api/bookings").status_code == 401
 print("ALL OK")
+
+# ─── Claude-провайдер: append-only історія, незмінний system, повний цикл бронювання ───
+from anthropic.types.beta import BetaTextBlock, BetaThinkingBlock, BetaToolUseBlock  # noqa: E402
+
+
+class FakeClaude:
+    def __init__(self):
+        self.calls = []
+
+    def create(self, **kw):
+        self.calls.append(json.loads(json.dumps(kw, default=str)))
+        assert "temperature" not in kw and kw["fallbacks"] == "default"
+        assert kw["tools"][0]["input_schema"]["type"] == "object"
+        msgs = kw["messages"]
+        last = msgs[-1]
+        think = BetaThinkingBlock(type="thinking", thinking="", signature="sig%d" % len(self.calls))
+        if isinstance(last["content"], str) and len(self.calls) == 1:
+            blocks = [think, BetaToolUseBlock(type="tool_use", id="t1", name="get_available_slots", input={})]
+            stop = "tool_use"
+        elif isinstance(last["content"], list) and last["content"][0].get("tool_use_id") == "t1":
+            slot = json.loads(last["content"][0]["content"])["slots"][0]["start"]
+            blocks = [think, BetaToolUseBlock(type="tool_use", id="t2", name="book_appointment",
+                      input={"start": slot, "name": "Ann", "phone": "+48 512 345 678"})]
+            stop = "tool_use"
+        elif isinstance(last["content"], list) and last["content"][0].get("tool_use_id") == "t2":
+            res = json.loads(last["content"][0]["content"])
+            assert res["ok"], res
+            blocks = [think, BetaTextBlock(type="text", text="Записала на " + res["confirmed"])]
+            stop = "end_turn"
+        else:
+            blocks = [think, BetaTextBlock(type="text", text="Ще щось?")]
+            stop = "end_turn"
+        return NS(content=blocks, stop_reason=stop, stop_details=None)
+
+
+fake = FakeClaude()
+appmod.receptionist.provider = "anthropic"
+appmod.receptionist.model = "claude-opus-5-5"
+appmod.receptionist.client = NS(beta=NS(messages=fake))
+r1 = c.post("/api/chat", json={"message": "Hi, I want a viewing"}).json()
+print("claude:", r1["reply"])
+assert r1["reply"].startswith("Записала")
+r2 = c.post("/api/chat", json={"message": "Дякую", "session_id": r1["session_id"]}).json()
+assert r2["reply"] == "Ще щось?"
+# system однаковий в усіх запитах сесії, а кожен запит — продовження попереднього (append-only)
+assert len({call["system"] for call in fake.calls}) == 1
+for prev, cur in zip(fake.calls, fake.calls[1:]):
+    assert cur["messages"][: len(prev["messages"])] == prev["messages"]
+# thinking-блоки з підписами передаються назад без змін
+assert fake.calls[-1]["messages"][1]["content"][0] == {"type": "thinking", "thinking": "", "signature": "sig1"}
+print("CLAUDE OK")

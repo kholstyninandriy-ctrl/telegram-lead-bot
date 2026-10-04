@@ -18,7 +18,7 @@ Vapi (телефон) ─────┘         │
 ```bash
 cd receptionist
 pip install -r requirements.txt
-export OPENAI_API_KEY=sk-...
+export ANTHROPIC_API_KEY=sk-ant-...   # або OPENAI_API_KEY
 uvicorn app:app --reload
 # → http://127.0.0.1:8000
 ```
@@ -28,8 +28,8 @@ uvicorn app:app --reload
 ## 2. Деплой на Render
 
 1. render.com → New → **Blueprint** → цей репозиторій (`render.yaml` уже є).
-2. Заповни `OPENAI_API_KEY`, а `PUBLIC_URL` = URL сервісу (напр. `https://ai-receptionist.onrender.com`).
-3. Перевір `/health` → `{"ok": true, "calendar": "mock", "openai": true}`.
+2. Заповни `ANTHROPIC_API_KEY` (або `OPENAI_API_KEY`), а `PUBLIC_URL` = URL сервісу (напр. `https://ai-receptionist.onrender.com`).
+3. Перевір `/health` → `{"ok": true, "calendar": "mock", "llm": "anthropic", ...}`.
 
 > Free-план Render «засинає»: перший запит іде ~30 с. Перед демо відкрий `/health` або візьми Starter ($7).
 
