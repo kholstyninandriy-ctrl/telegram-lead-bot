@@ -1,5 +1,7 @@
 services:
-  # AI-Рецепціоніст (чат-віджет + Vapi webhook + бронювання)
+  # AI-Рецепціоніст (чат-віджет + Vapi webhook + бронювання).
+  # Необов'язкові змінні (ANTHROPIC_API_KEY, PUBLIC_URL, TELEGRAM_BOT_TOKEN, OWNER_CHAT_ID,
+  # CALCOM_*, GOOGLE_*) додаються пізніше: сервіс → Environment.
   - type: web
     name: ai-receptionist
     runtime: python
@@ -11,28 +13,11 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
-      - key: ANTHROPIC_API_KEY
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: PUBLIC_URL
-        sync: false
       - key: BUSINESS_TIMEZONE
         value: Europe/Kyiv
+      - key: OPENAI_API_KEY
+        sync: false
       - key: ADMIN_TOKEN
         generateValue: true
       - key: VAPI_SECRET
         generateValue: true
-      - key: TELEGRAM_BOT_TOKEN
-        sync: false
-      - key: OWNER_CHAT_ID
-        sync: false
-      - key: CALCOM_API_KEY
-        sync: false
-      - key: CALCOM_EVENT_TYPE_ID
-        sync: false
-      - key: GOOGLE_SERVICE_ACCOUNT_JSON
-        sync: false
-      - key: GOOGLE_CALENDAR_ID
-        sync: false
-
