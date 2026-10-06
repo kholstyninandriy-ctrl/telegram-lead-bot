@@ -4,7 +4,7 @@
  *   <script src="https://YOUR-API/widget.js"
  *           data-business="Skyline Realty" data-niche="real_estate"
  *           data-color="#2563eb" data-phone="+15551234567"
- *           data-greeting="Вітаю! Допоможу підібрати квартиру і записати на перегляд."></script>
+ *           data-lang="pt"></script>   (en | pt | uk; без нього — мова браузера)
  */
 (function () {
   var script = document.currentScript || document.querySelector('script[src*="widget.js"]');
@@ -17,7 +17,22 @@
   var NICHE = opt("niche", "real_estate");
   var COLOR = opt("color", "#2563eb");
   var PHONE = opt("phone", "");
-  var GREETING = opt("greeting", "Вітаю! 👋 Я AI-адміністратор" + (BUSINESS ? " «" + BUSINESS + "»" : "") + ". Допоможу записатися — що вас цікавить?");
+  var L = {
+    en: { hi: function (b) { return "Hi! 👋 I'm the AI receptionist" + (b ? " at " + b : "") + ". I can book you in — what are you looking for?"; },
+          sub: "AI receptionist · replies instantly", ph: "Type a message…", typing: "typing…", call: "📞 Or call the AI: ",
+          offline: "Can't reach the server. Please try again.", title: "Online booking", open: "Open chat", close: "Close" },
+    pt: { hi: function (b) { return "Olá! 👋 Sou a rececionista IA" + (b ? " da " + b : "") + ". Posso fazer a sua marcação — em que posso ajudar?"; },
+          sub: "Rececionista IA · responde na hora", ph: "Escreva uma mensagem…", typing: "a escrever…", call: "📞 Ou ligue para a IA: ",
+          offline: "Sem ligação ao servidor. Tente novamente.", title: "Marcação online", open: "Abrir chat", close: "Fechar" },
+    uk: { hi: function (b) { return "Вітаю! 👋 Я AI-адміністратор" + (b ? " «" + b + "»" : "") + ". Допоможу записатися — що вас цікавить?"; },
+          sub: "AI-адміністратор · відповідає миттєво", ph: "Напишіть повідомлення…", typing: "друкує…", call: "📞 Або зателефонуйте AI: ",
+          offline: "Немає зв'язку з сервером. Спробуйте ще раз.", title: "Онлайн-запис", open: "Відкрити чат", close: "Закрити" }
+  };
+  var LANG = opt("lang", (navigator.language || "en")).slice(0, 2).toLowerCase();
+  if (LANG === "ru") LANG = "uk";
+  if (!L[LANG]) LANG = "en";
+  var t = L[LANG];
+  var GREETING = opt("greeting", t.hi(BUSINESS));
   var OPEN = opt("open", "") === "true";
   var SKEY = "air_sid_" + (BUSINESS || NICHE);
 
@@ -45,16 +60,20 @@
   var st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
 
   var btn = document.createElement("button");
-  btn.className = "air-btn"; btn.setAttribute("aria-label", "Відкрити чат"); btn.textContent = "💬";
+  btn.className = "air-btn"; btn.setAttribute("aria-label", t.open); btn.textContent = "💬";
   var win = document.createElement("div");
   win.className = "air-win";
   win.innerHTML =
-    '<div class="air-head"><span class="air-dot"></span><div><b></b><small>AI-адміністратор · відповідає миттєво</small></div><button class="air-x" aria-label="Закрити">×</button></div>' +
+    '<div class="air-head"><span class="air-dot"></span><div><b></b><small></small></div><button class="air-x">×</button></div>' +
     '<div class="air-msgs"></div>' +
-    (PHONE ? '<a class="air-call" href="tel:' + PHONE + '">📞 Або зателефонуйте AI: ' + PHONE + '</a>' : "") +
-    '<form class="air-form"><input placeholder="Напишіть повідомлення…" maxlength="2000" /><button>➤</button></form>' +
+    (PHONE ? '<a class="air-call"></a>' : "") +
+    '<form class="air-form"><input maxlength="2000" /><button>➤</button></form>' +
     '<div class="air-foot">Powered by AI Receptionist</div>';
-  win.querySelector(".air-head b").textContent = BUSINESS || "Онлайн-запис";
+  win.querySelector(".air-head b").textContent = BUSINESS || t.title;
+  win.querySelector(".air-head small").textContent = t.sub;
+  win.querySelector(".air-x").setAttribute("aria-label", t.close);
+  win.querySelector("input").placeholder = t.ph;
+  if (PHONE) { var callA = win.querySelector(".air-call"); callA.href = "tel:" + PHONE; callA.textContent = t.call + PHONE; }
   document.body.appendChild(win); document.body.appendChild(btn);
 
   var msgs = win.querySelector(".air-msgs");
@@ -85,19 +104,19 @@
     if (!text) return;
     add(text, "me"); input.value = ""; send.disabled = true;
     var typing = document.createElement("div");
-    typing.className = "air-typing"; typing.textContent = "друкує…";
+    typing.className = "air-typing"; typing.textContent = t.typing;
     msgs.appendChild(typing); msgs.scrollTop = msgs.scrollHeight;
     fetch(API + "/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text, session_id: sid, niche: NICHE, business_name: BUSINESS || null })
+      body: JSON.stringify({ message: text, session_id: sid, niche: NICHE, lang: LANG, business_name: BUSINESS || null })
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (data.session_id) { sid = data.session_id; try { sessionStorage.setItem(SKEY, sid); } catch (e) {} }
         add(data.reply || "…", "bot");
       })
-      .catch(function () { add("Немає зв'язку з сервером. Спробуйте ще раз.", "bot"); })
+      .catch(function () { add(t.offline, "bot"); })
       .finally(function () { typing.remove(); send.disabled = false; input.focus(); });
   };
 

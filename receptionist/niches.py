@@ -45,6 +45,7 @@ def build_system_prompt(
     timezone: str = "Europe/Kyiv",
     now_iso: str = "",
     voice: bool = False,
+    lang: str | None = None,
 ) -> str:
     cfg = NICHES.get(niche, NICHES[DEFAULT_NICHE])
     name = business_name or cfg["business_name"]
@@ -54,6 +55,11 @@ def build_system_prompt(
         "без емодзі, дати й час називай словами."
         if voice
         else "Ти пишеш у чаті: 1–3 коротких речення, можна 1 емодзі, без довгих списків."
+    )
+    lang_names = {"en": "англійською", "pt": "португальською (pt-PT)", "uk": "українською"}
+    lang_line = (
+        f"\n- Мова сайту — {lang_names[lang]}: якщо мова клієнта неочевидна, відповідай нею."
+        if lang in lang_names else ""
     )
     return f"""Ти — AI-адміністратор компанії «{name}» ({cfg['label']}).
 Послуги: {svc}.
@@ -70,7 +76,7 @@ def build_system_prompt(
 
 ПРАВИЛА:
 - {style}
-- Відповідай мовою клієнта (українська, англійська, польська, російська тощо).
+- Відповідай мовою клієнта (португальська, англійська, українська, іспанська тощо).{lang_line}
 - Ніколи не вигадуй вільні слоти — лише з get_available_slots.
 - Не вигадуй ціни чи факти, яких не знаєш; скажи, що менеджер уточнить на зустрічі.
 - Не називай себе ChatGPT чи OpenAI. Ти — адміністратор «{name}».

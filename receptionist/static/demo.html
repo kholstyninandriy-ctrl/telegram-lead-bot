@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="uk">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -29,20 +29,20 @@
 <header><img id="logo" alt="" hidden /><span class="name" id="bizName">Skyline Realty</span></header>
 
 <section class="hero">
-  <span class="badge">🤖 AI-адміністратор 24/7</span>
-  <h1 id="headline">Спробуйте записатися прямо зараз — вам відповість AI</h1>
-  <p class="lead" id="sub">Він відповідає за 2–3 секунди, уточнює потребу, пропонує вільний час і створює запис у календарі. Без менеджера й без очікування.</p>
+  <span class="badge" data-i18n="badge"></span>
+  <h1 data-i18n="h1"></h1>
+  <p class="lead" data-i18n="lead"></p>
   <div class="ctas">
-    <button class="cta primary" onclick="AIReceptionist.open()">💬 Написати в чат</button>
-    <a class="cta dark" id="callBtn" hidden>📞 Зателефонувати AI</a>
+    <button class="cta primary" onclick="AIReceptionist.open()" data-i18n="chat"></button>
+    <a class="cta dark" id="callBtn" hidden></a>
   </div>
 </section>
 
 <section class="grid">
-  <div class="card"><b>⚡ Миттєва відповідь</b><span>Жоден лід не чекає до ранку — навіть о 23:00 у неділю.</span></div>
-  <div class="card"><b>📅 Автозапис у календар</b><span>Google Calendar або Cal.com — зустріч з'являється одразу після діалогу.</span></div>
-  <div class="card"><b>📲 Сповіщення власнику</b><span>Ім'я, телефон і час запису миттєво приходять у Telegram.</span></div>
-  <div class="card"><b>🌍 Будь-якою мовою</b><span>Відповідає мовою клієнта: українська, англійська, польська…</span></div>
+  <div class="card"><b data-i18n="c1t"></b><span data-i18n="c1"></span></div>
+  <div class="card"><b data-i18n="c2t"></b><span data-i18n="c2"></span></div>
+  <div class="card"><b data-i18n="c3t"></b><span data-i18n="c3"></span></div>
+  <div class="card"><b data-i18n="c4t"></b><span data-i18n="c4"></span></div>
 </section>
 
 <script>
@@ -52,8 +52,47 @@
   // Для Netlify/Vercel впиши сюди URL з Render, напр. "https://ai-receptionist.onrender.com"
   var API_URL = "https://ai-receptionist-jli6.onrender.com";
 
+  var T = {
+    en: {
+      badge: "🤖 AI receptionist 24/7",
+      h1: "Try booking right now — an AI will answer",
+      lead: "It replies in seconds, asks what you need, offers free time slots and books the appointment in the calendar. No manager, no waiting.",
+      chat: "💬 Start chat", call: "📞 Call the AI: ",
+      c1t: "⚡ Instant reply", c1: "No lead waits until morning — even at 11 pm on a Sunday.",
+      c2t: "📅 Books into your calendar", c2: "Google Calendar or Cal.com — the meeting appears right after the chat.",
+      c3t: "📲 Owner notifications", c3: "Name, phone and booking time arrive in Telegram instantly.",
+      c4t: "🌍 Any language", c4: "Answers in the client's language: English, Portuguese, Spanish…"
+    },
+    pt: {
+      badge: "🤖 Rececionista IA 24/7",
+      h1: "Experimente marcar agora — quem responde é uma IA",
+      lead: "Responde em segundos, percebe o que precisa, sugere horários livres e marca a reunião no calendário. Sem esperas.",
+      chat: "💬 Abrir chat", call: "📞 Ligar para a IA: ",
+      c1t: "⚡ Resposta imediata", c1: "Nenhum cliente fica à espera — nem às 23h de domingo.",
+      c2t: "📅 Marcação no calendário", c2: "Google Calendar ou Cal.com — a reunião aparece logo após a conversa.",
+      c3t: "📲 Aviso ao proprietário", c3: "Nome, telefone e hora chegam ao Telegram na hora.",
+      c4t: "🌍 Qualquer idioma", c4: "Responde no idioma do cliente: português, inglês, espanhol…"
+    },
+    uk: {
+      badge: "🤖 AI-адміністратор 24/7",
+      h1: "Спробуйте записатися прямо зараз — вам відповість AI",
+      lead: "Він відповідає за кілька секунд, уточнює потребу, пропонує вільний час і створює запис у календарі. Без менеджера й без очікування.",
+      chat: "💬 Написати в чат", call: "📞 Зателефонувати AI: ",
+      c1t: "⚡ Миттєва відповідь", c1: "Жоден лід не чекає до ранку — навіть о 23:00 у неділю.",
+      c2t: "📅 Автозапис у календар", c2: "Google Calendar або Cal.com — зустріч з'являється одразу після діалогу.",
+      c3t: "📲 Сповіщення власнику", c3: "Ім'я, телефон і час запису миттєво приходять у Telegram.",
+      c4t: "🌍 Будь-якою мовою", c4: "Відповідає мовою клієнта: українська, англійська, польська…"
+    }
+  };
+
   (function () {
     var p = new URLSearchParams(location.search);
+    var lang = (p.get("lang") || (navigator.language || "en")).slice(0, 2).toLowerCase();
+    if (lang === "ru") lang = "uk";
+    if (!T[lang]) lang = "en";
+    var t = T[lang];
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i18n]").forEach(function (el) { el.textContent = t[el.dataset.i18n]; });
     var api = (p.get("api") || API_URL).replace(/\/$/, "");
     var defaults = { real_estate: "Skyline Realty", dental: "Smile Dental", beauty: "Glow Studio", auto: "Pro Auto Service" };
     var niche = p.get("niche") || "real_estate";
@@ -65,9 +104,9 @@
     document.getElementById("bizName").textContent = business;
     document.title = business + " — AI Receptionist";
     if (p.get("logo")) { var l = document.getElementById("logo"); l.src = p.get("logo"); l.hidden = false; }
-    if (phone) { var c = document.getElementById("callBtn"); c.href = "tel:" + phone; c.textContent = "📞 Зателефонувати AI: " + phone; c.hidden = false; }
+    if (phone) { var c = document.getElementById("callBtn"); c.href = "tel:" + phone; c.textContent = t.call + phone; c.hidden = false; }
 
-    window.AIReceptionistConfig = { api: api, business: business, niche: niche, color: color, phone: phone, open: "true" };
+    window.AIReceptionistConfig = { api: api, lang: lang, business: business, niche: niche, color: color, phone: phone, open: "true" };
     var s = document.createElement("script");
     s.src = "widget.js";
     document.body.appendChild(s);

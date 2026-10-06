@@ -178,6 +178,7 @@ class Receptionist:
             timezone=TZ_NAME,
             now_iso=datetime.now(TZ).strftime("%Y-%m-%d %H:%M, %A"),
             voice=channel == "voice",
+            lang=profile.get("lang"),
         )
 
     def reply(self, history: list[dict], system: str, ctx: dict) -> tuple[str, list[dict]]:

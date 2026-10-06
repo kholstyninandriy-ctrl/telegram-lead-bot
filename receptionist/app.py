@@ -75,6 +75,7 @@ class ChatIn(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
     session_id: str | None = None
     niche: str | None = None
+    lang: str | None = Field(None, max_length=5)
     business_name: str | None = Field(None, max_length=100)
     services: str | None = Field(None, max_length=500)
 
@@ -86,6 +87,7 @@ def chat(body: ChatIn):
         "niche": body.niche if body.niche in NICHES else "real_estate",
         "business_name": body.business_name,
         "services": body.services,
+        "lang": body.lang,
     }
     if sess["system"] is None:  # system фіксується на всю сесію (вимога Claude)
         sess["system"] = receptionist.build_system(profile, channel="chat")

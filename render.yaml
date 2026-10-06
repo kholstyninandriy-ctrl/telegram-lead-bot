@@ -14,7 +14,9 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: BUSINESS_TIMEZONE
-        value: Europe/Kyiv
+        value: Europe/Lisbon
+      - key: DEFAULT_PHONE_REGION
+        value: PT
       - key: OPENAI_API_KEY
         sync: false
       - key: ADMIN_TOKEN
